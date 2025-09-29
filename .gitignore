@@ -1,0 +1,107 @@
+# Environment files
+.env
+.env.local
+.env.development
+.env.production
+.env.test
+.env.*.local
+*.env
+
+# Dependency directories
+node_modules/
+venv/
+.venv/
+env/
+ENV/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Node.js
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+package-lock.json
+
+# Next.js
+.next/
+out/
+.vercel
+.next.config.js
+
+# TypeScript
+*.tsbuildinfo
+
+# MongoDB
+data/
+data/db/
+
+# IDE & Editors
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.DS_Store
+*.sublime*
+.atom/
+.buildpath
+.project
+.settings/
+
+# Testing
+/coverage
+.nyc_output
+
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Production build files
+/build
+/dist
+
+# Secret files
+*.pem
+*.key
+*.cert
+credentials.json
+secret.json
+auth.json
+
+# Local development
+.vercel
+.netlify
+
+# ML models (potentially large files)
+ml/models/saved/*.h5
+ml/models/saved/*.pkl
+ml/models/saved/*.bin
+ml/models/saved/*.onnx
+
+# Uploaded files in development (would be stored in a service like S3 in production)
+backend/uploads/*
+!backend/uploads/.gitkeep

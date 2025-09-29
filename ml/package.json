@@ -1,0 +1,16 @@
+{
+  "name": "cliniview-ml",
+  "version": "1.0.0",
+  "description": "Machine Learning modules for Cliniview healthcare platform",
+  "main": "app.py",
+  "scripts": {
+    "start": "python app.py",
+    "train": "python train.py"
+  },
+  "dependencies": {
+    "dotenv": "^16.4.5"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
