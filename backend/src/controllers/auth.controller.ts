@@ -1,9 +1,25 @@
 import { Request, Response } from 'express';
 import jwt from 'jsonwebtoken';
-import { OAuth2Client } from 'google-auth-library';
+import { google } from 'googleapis';
 import User, { IUser } from '../models/user.model';
+import dotenv from 'dotenv';
+import path from 'path';
 
-const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
+// Ensure environment variables are loaded
+dotenv.config({ path: path.resolve(__dirname, '../../.env') });
+
+// Debug environment variables after dotenv config
+console.log("Environment variables for OAuth (after direct dotenv loading):");
+console.log("- GOOGLE_CLIENT_ID:", process.env.GOOGLE_CLIENT_ID ? "defined" : "undefined");
+console.log("- GOOGLE_CLIENT_SECRET:", process.env.GOOGLE_CLIENT_SECRET ? "defined" : "undefined");
+console.log("- GOOGLE_CALLBACK_URL:", process.env.GOOGLE_CALLBACK_URL);
+
+// Create a new OAuth2 client with the configured keys
+const oauth2Client = new google.auth.OAuth2(
+  process.env.GOOGLE_CLIENT_ID,
+  process.env.GOOGLE_CLIENT_SECRET,
+  process.env.GOOGLE_CALLBACK_URL
+);
 
 interface TokenPayload {
   id: string;
@@ -32,16 +48,26 @@ const generateToken = (user: IUser): string => {
 // @route   GET /api/auth/google
 // @access  Public
 export const googleAuth = (req: Request, res: Response): void => {
-  const redirectUrl = client.generateAuthUrl({
+  // Get the role from query parameters (default to 'patient')
+  const role = req.query.role || 'patient';
+  
+  // Store the role in the state parameter to retrieve it in the callback
+  const state = JSON.stringify({ role });
+  
+  const authorizeUrl = oauth2Client.generateAuthUrl({
     access_type: 'offline',
     scope: [
       'https://www.googleapis.com/auth/userinfo.email',
       'https://www.googleapis.com/auth/userinfo.profile',
     ],
-    redirect_uri: process.env.GOOGLE_CALLBACK_URL as string,
+    prompt: 'consent',
+    include_granted_scopes: true,
+    state: state // Pass the role information to the callback
   });
 
-  res.redirect(redirectUrl);
+  console.log("Google OAuth URL:", authorizeUrl);
+  console.log("Role set to:", role);
+  res.redirect(authorizeUrl);
 };
 
 // @desc    Google OAuth callback
@@ -57,43 +83,115 @@ export const googleCallback = async (req: Request, res: Response): Promise<void>
     }
 
     // Exchange code for tokens
-    const { tokens } = await client.getToken({
-      code,
-      redirect_uri: process.env.GOOGLE_CALLBACK_URL as string,
-    });
-
+    console.log("Exchanging code for tokens");
+    const { tokens } = await oauth2Client.getToken(code);
+    oauth2Client.setCredentials(tokens);
+    
+    console.log("Received tokens:", tokens ? "Token received" : "No tokens received");
+    
     if (!tokens.id_token) {
       res.redirect(`${process.env.FRONTEND_URL}/auth/login?error=invalid_token`);
       return;
     }
-
-    // Verify ID token
-    const ticket = await client.verifyIdToken({
-      idToken: tokens.id_token,
-      audience: process.env.GOOGLE_CLIENT_ID as string,
-    });
-
-    const payload = ticket.getPayload() as GoogleTokenPayload;
     
-    if (!payload || !payload.email) {
-      res.redirect(`${process.env.FRONTEND_URL}/auth/login?error=invalid_payload`);
+    // Get user info using the access token
+    const oauth2 = google.oauth2({
+      auth: oauth2Client,
+      version: 'v2'
+    });
+    
+    const userInfo = await oauth2.userinfo.get();
+    
+    if (!userInfo.data || !userInfo.data.email) {
+      res.redirect(`${process.env.FRONTEND_URL}/auth/login?error=invalid_userinfo`);
       return;
     }
+    
+    const payload = {
+      email: userInfo.data.email,
+      name: userInfo.data.name || '',
+      picture: userInfo.data.picture,
+      given_name: userInfo.data.given_name,
+      family_name: userInfo.data.family_name
+    } as GoogleTokenPayload;
     
     // Find existing user or create a new one
     let user = await User.findOne({ email: payload.email });
 
+    // Get the role from the state parameter
+    let role = 'patient'; // Default to patient
+    try {
+      if (req.query.state && typeof req.query.state === 'string') {
+        const stateData = JSON.parse(req.query.state);
+        if (stateData.role) {
+          role = stateData.role as string;
+        }
+      }
+    } catch (e) {
+      console.error('Failed to parse state parameter:', e);
+      // Continue with default role
+    }
+    console.log("Using role:", role);
+    
     if (!user) {
-      // Create new user (role needs to be selected by the user during registration flow)
-      res.redirect(`${process.env.FRONTEND_URL}/auth/complete-registration?email=${payload.email}&name=${payload.name}`);
-      return;
+      // Create new user with the role specified in the query
+      user = new User({
+        name: payload.name || '',
+        email: payload.email,
+        role: role,
+        isEmailVerified: true, // Google OAuth users are verified
+        password: Math.random().toString(36).slice(-8), // Random password for OAuth users
+      });
+      
+      await user.save();
+      console.log(`Created new user with role: ${role}`);
+      
+      // Create the specific user type (Patient or Doctor) profile
+      try {
+        if (role === 'patient') {
+          // Import here to avoid circular dependency
+          const Patient = require('../models/patient.model').default;
+          
+          const newPatient = new Patient({
+            userId: user._id,
+            name: payload.name || '',
+            email: payload.email,
+            dateOfBirth: new Date(), // Default value, can be updated later
+            phone: '',
+            medicalHistory: []
+          });
+          
+          await newPatient.save();
+          console.log('Patient profile created for OAuth user');
+        } else if (role === 'doctor') {
+          // Import here to avoid circular dependency
+          const Doctor = require('../models/doctor.model').default;
+          
+          const newDoctor = new Doctor({
+            userId: user._id,
+            name: payload.name || '',
+            email: payload.email,
+            specialization: '', // Can be updated later
+            hospital: '',
+            licenseNumber: ''
+          });
+          
+          await newDoctor.save();
+          console.log('Doctor profile created for OAuth user');
+        }
+      } catch (profileError) {
+        console.error('Error creating user profile for OAuth user:', profileError);
+        // We don't want to fail registration if profile creation fails
+        // The profile can be created later
+      }
     }
 
     // Generate JWT
     const token = generateToken(user);
 
-    // Redirect to frontend with token
-    res.redirect(`${process.env.FRONTEND_URL}/auth/oauth-callback?token=${token}`);
+    // Redirect to frontend dashboard based on role
+    const dashboardPath = user.role === 'doctor' ? '/dashboard/doctor' : '/dashboard/patient';
+    res.redirect(`${process.env.FRONTEND_URL}${dashboardPath}?token=${token}`);
   } catch (error) {
     console.error('Google OAuth error:', error);
     res.redirect(`${process.env.FRONTEND_URL}/auth/login?error=oauth_failed`);
@@ -123,6 +221,45 @@ export const register = async (req: Request, res: Response): Promise<Response> =
     });
 
     await user.save();
+
+    // Create the specific user type (Patient or Doctor)
+    try {
+      if (role === 'patient') {
+        // Import here to avoid circular dependency
+        const Patient = require('../models/patient.model').default;
+        
+        const newPatient = new Patient({
+          userId: user._id,
+          name: name,
+          email: email,
+          dateOfBirth: new Date(), // Default value, can be updated later
+          phone: '',
+          medicalHistory: []
+        });
+        
+        await newPatient.save();
+        console.log('Patient profile created');
+      } else if (role === 'doctor') {
+        // Import here to avoid circular dependency
+        const Doctor = require('../models/doctor.model').default;
+        
+        const newDoctor = new Doctor({
+          userId: user._id,
+          name: name,
+          email: email,
+          specialization: '', // Can be updated later
+          hospital: '',
+          licenseNumber: ''
+        });
+        
+        await newDoctor.save();
+        console.log('Doctor profile created');
+      }
+    } catch (profileError) {
+      console.error('Error creating user profile:', profileError);
+      // We don't want to fail registration if profile creation fails
+      // The profile can be created later
+    }
 
     // Generate token
     const token = generateToken(user);

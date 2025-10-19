@@ -13,6 +13,8 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const { login } = useAuth();
   const router = useRouter();
+  const searchParams = new URLSearchParams(typeof window !== 'undefined' ? window.location.search : '');
+  const role = searchParams.get('role') || 'patient';
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -31,30 +33,22 @@ export default function LoginPage() {
     }
   };
 
-  const roleIcons = {
-    patient: <User className="w-5 h-5" />,
-    doctor: <Stethoscope className="w-5 h-5" />,
-    admin: <Shield className="w-5 h-5" />,
-  };
-
-  const roleColors = {
-    patient: 'bg-blue-100 text-blue-600',
-    doctor: 'bg-green-100 text-green-600',
-    admin: 'bg-red-100 text-red-600',
-  };
-
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
       <div className="max-w-md w-full space-y-8">
         <div className="text-center">
-          <div className="mx-auto h-12 w-12 bg-indigo-600 rounded-full flex items-center justify-center">
-            <Stethoscope className="h-6 w-6 text-white" />
+          <div className={`mx-auto h-12 w-12 ${role === 'doctor' ? 'bg-green-600' : 'bg-blue-600'} rounded-full flex items-center justify-center`}>
+            {role === 'doctor' ? (
+              <Stethoscope className="h-6 w-6 text-white" />
+            ) : (
+              <User className="h-6 w-6 text-white" />
+            )}
           </div>
           <h2 className="mt-6 text-3xl font-bold text-gray-900">
-            Healthcare Platform
+            CliniView
           </h2>
           <p className="mt-2 text-sm text-gray-600">
-            Sign in to your account
+            Sign in as {role === 'doctor' ? 'Doctor' : 'Patient'}
           </p>
         </div>
 
@@ -137,7 +131,12 @@ export default function LoginPage() {
             <div className="mt-4">
               <button
                 type="button"
-                onClick={() => window.location.href = `${process.env.NEXT_PUBLIC_API_URL}/auth/google`}
+                onClick={() => {
+                  // Get role from URL parameters or default to 'patient'
+                  const searchParams = new URLSearchParams(window.location.search);
+                  const role = searchParams.get('role') || 'patient';
+                  window.location.href = `${process.env.NEXT_PUBLIC_API_URL}/auth/google?role=${role}`;
+                }}
                 className="w-full flex items-center justify-center py-3 px-4 border border-gray-300 rounded-lg shadow-sm bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
               >
                 <svg className="h-5 w-5 mr-2" viewBox="0 0 24 24" width="24" height="24" xmlns="http://www.w3.org/2000/svg">
@@ -158,7 +157,7 @@ export default function LoginPage() {
               Don't have an account?{' '}
               <button
                 type="button"
-                onClick={() => router.push('/auth/register')}
+                onClick={() => router.push(`/auth/register${role ? `?role=${role}` : ''}`)}
                 className="font-medium text-indigo-600 hover:text-indigo-500"
               >
                 Sign up
@@ -166,31 +165,6 @@ export default function LoginPage() {
             </p>
           </div>
         </form>
-
-        {/* Demo credentials */}
-        <div className="mt-8 p-4 bg-gray-50 rounded-lg">
-          <h3 className="text-sm font-medium text-gray-700 mb-3">Demo Credentials:</h3>
-          <div className="space-y-2 text-xs">
-            <div className="flex items-center space-x-2">
-              <span className={`px-2 py-1 rounded-full text-xs font-medium ${roleColors.patient}`}>
-                {roleIcons.patient} Patient
-              </span>
-              <span className="text-gray-600">patient@demo.com / password123</span>
-            </div>
-            <div className="flex items-center space-x-2">
-              <span className={`px-2 py-1 rounded-full text-xs font-medium ${roleColors.doctor}`}>
-                {roleIcons.doctor} Doctor
-              </span>
-              <span className="text-gray-600">doctor@demo.com / password123</span>
-            </div>
-            <div className="flex items-center space-x-2">
-              <span className={`px-2 py-1 rounded-full text-xs font-medium ${roleColors.admin}`}>
-                {roleIcons.admin} Admin
-              </span>
-              <span className="text-gray-600">admin@demo.com / password123</span>
-            </div>
-          </div>
-        </div>
       </div>
     </div>
   );

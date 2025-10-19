@@ -1,11 +1,12 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import Card from '@/components/ui/Card';
 import StatCard from '@/components/ui/StatCard';
 import Button from '@/components/ui/Button';
+import { setTokenInStorage } from '@/lib/auth';
 import { 
   FileText, 
   Upload, 
@@ -31,8 +32,20 @@ export default function PatientDashboard() {
   const [documents, setDocuments] = useState<Document[]>([]);
   const [loading, setLoading] = useState(true);
   const router = useRouter();
+  const searchParams = useSearchParams();
 
   useEffect(() => {
+    // Check if there's a token in the URL (from OAuth redirect)
+    const token = searchParams?.get('token');
+    if (token) {
+      console.log("Found token in URL, saving to storage");
+      setTokenInStorage(token);
+      
+      // Remove the token from URL using replace state
+      const newUrl = window.location.pathname;
+      window.history.replaceState({}, '', newUrl);
+    }
+
     // Mock data - in real app, fetch from API
     const mockDocuments: Document[] = [
       {
