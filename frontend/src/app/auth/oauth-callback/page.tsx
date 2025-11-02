@@ -3,6 +3,7 @@
 import React, { useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { setTokenInStorage } from '@/lib/auth';
+import toast from 'react-hot-toast';
 
 export default function OAuthCallbackPage() {
   const router = useRouter();
@@ -11,11 +12,24 @@ export default function OAuthCallbackPage() {
   useEffect(() => {
     const handleOAuthCallback = async () => {
       try {
+        const error = searchParams?.get('error');
+        if (error) {
+          if (error === 'role_mismatch') {
+            toast.error('This email is registered with a different role. Please sign in as that role.');
+          } else {
+            toast.error('Google sign-in failed. Please try again.');
+          }
+          // Redirect to login with any existing role param for clarity
+          const role = searchParams?.get('role');
+          router.push(`/auth/login${role ? `?role=${role}` : ''}`);
+          return;
+        }
         // Get token from query params
         const token = searchParams?.get('token');
         
         if (!token) {
           console.error('No token found in OAuth callback');
+          toast.error('No token received from Google. Please try again.');
           router.push('/auth/login?error=no_token');
           return;
         }
@@ -29,6 +43,7 @@ export default function OAuthCallbackPage() {
         window.location.href = '/';
       } catch (error) {
         console.error('OAuth callback error:', error);
+        toast.error('Sign-in failed. Please try again.');
         router.push('/auth/login?error=oauth_failed');
       }
     };

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
 import { Eye, EyeOff, Mail, Lock, User, Stethoscope, Shield, Building2 } from 'lucide-react';
@@ -14,7 +14,43 @@ export default function LoginPage() {
   const { login } = useAuth();
   const router = useRouter();
   const searchParams = new URLSearchParams(typeof window !== 'undefined' ? window.location.search : '');
-  const role = searchParams.get('role') || 'patient';
+  const roleParam = searchParams.get('role');
+  const role = roleParam || 'patient';
+
+  // Only allow opening /auth/login if a role is specified in query params
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const params = new URLSearchParams(window.location.search);
+    const r = params.get('role');
+    if (!r) {
+      // No explicit role provided; redirect to home page
+      router.replace('/');
+    }
+  }, [router]);
+
+  // Surface error messages from query params (e.g., role_mismatch, oauth_failed)
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const params = new URLSearchParams(window.location.search);
+    const err = params.get('error');
+    if (!err) return;
+
+    switch (err) {
+      case 'role_mismatch':
+        toast.error('This email is registered with a different role. Please sign in as that role or use a different email.');
+        break;
+      case 'oauth_failed':
+        toast.error('Google sign-in failed. Please try again.');
+        break;
+      case 'invalid_code':
+      case 'invalid_token':
+      case 'invalid_userinfo':
+        toast.error('Google sign-in failed due to an invalid response. Please try again.');
+        break;
+      default:
+        toast.error('Authentication error. Please try again.');
+    }
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -22,12 +58,19 @@ export default function LoginPage() {
 
     try {
       console.log('Attempting login with:', { email, password });
-      await login(email, password);
+  await login(email, password, role);
       console.log('Login successful, should redirect now');
       toast.success('Login successful!');
     } catch (error) {
       console.error('Login failed:', error);
-      toast.error('Login failed. Please check your credentials.');
+      const msg = (error as any)?.message || '';
+      if (msg.toLowerCase().includes('account exists as')) {
+        toast.error(msg);
+      } else if (msg.toLowerCase().includes('invalid credentials')) {
+        toast.error('Incorrect email or password.');
+      } else {
+        toast.error('Login failed. Please try again.');
+      }
     } finally {
       setLoading(false);
     }

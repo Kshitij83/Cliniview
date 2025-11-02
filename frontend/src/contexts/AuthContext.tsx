@@ -9,7 +9,7 @@ import { User } from '@/types';
 interface AuthContextType {
   user: User | null;
   loading: boolean;
-  login: (email: string, password: string) => Promise<void>;
+  login: (email: string, password: string, role?: string) => Promise<void>;
   register: (userData: any) => Promise<void>;
   logout: () => void;
   isAuthenticated: boolean;
@@ -57,9 +57,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     initAuth();
   }, []);
 
-  const login = async (email: string, password: string) => {
+  const login = async (email: string, password: string, role?: string) => {
     try {
-      const response:any = await apiClient.login(email, password);
+      const response:any = await apiClient.login(email, password, role);
       console.log('Login response:', response);
       
       setTokenInStorage(response.token);
@@ -140,7 +140,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const logout = () => {
     removeTokenFromStorage();
     setUser(null);
-    router.push('/auth/login');
+    // Redirect to home page on sign out
+    router.push('/');
   };
 
   const value: AuthContextType = {

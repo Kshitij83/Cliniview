@@ -4,9 +4,9 @@ import { IUser } from './user.model';
 // Patient interface - Simplified for minimal requirements
 export interface IPatient extends Document {
   user: mongoose.Types.ObjectId | IUser;
-  dateOfBirth: Date;
-  gender: 'male' | 'female' | 'other';
-  phone: string;
+  dateOfBirth?: Date;
+  gender?: 'male' | 'female' | 'other';
+  phone?: string;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -21,16 +21,16 @@ const patientSchema = new Schema<IPatient>(
     },
     dateOfBirth: {
       type: Date,
-      required: true,
+      required: false,
     },
     gender: {
       type: String,
       enum: ['male', 'female', 'other'],
-      required: true,
+      required: false,
     },
     phone: {
       type: String,
-      required: true,
+      required: false,
     }
   },
   {

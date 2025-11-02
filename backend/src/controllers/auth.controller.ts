@@ -116,7 +116,7 @@ export const googleCallback = async (req: Request, res: Response): Promise<void>
     } as GoogleTokenPayload;
     
     // Find existing user or create a new one
-    let user = await User.findOne({ email: payload.email });
+  let user = await User.findOne({ email: payload.email });
 
     // Get the role from the state parameter
     let role = 'patient'; // Default to patient
@@ -151,31 +151,23 @@ export const googleCallback = async (req: Request, res: Response): Promise<void>
         if (role === 'patient') {
           // Import here to avoid circular dependency
           const Patient = require('../models/patient.model').default;
-          
+
           const newPatient = new Patient({
-            userId: user._id,
-            name: payload.name || '',
-            email: payload.email,
-            dateOfBirth: new Date(), // Default value, can be updated later
-            phone: '',
-            medicalHistory: []
+            user: user._id,
+            // other fields are optional and can be set later via profile update
           });
-          
+
           await newPatient.save();
           console.log('Patient profile created for OAuth user');
         } else if (role === 'doctor') {
           // Import here to avoid circular dependency
           const Doctor = require('../models/doctor.model').default;
-          
+
           const newDoctor = new Doctor({
-            userId: user._id,
-            name: payload.name || '',
-            email: payload.email,
-            specialization: '', // Can be updated later
-            hospital: '',
-            licenseNumber: ''
+            user: user._id,
+            // other fields are optional and can be set later via profile update
           });
-          
+
           await newDoctor.save();
           console.log('Doctor profile created for OAuth user');
         }
@@ -183,6 +175,13 @@ export const googleCallback = async (req: Request, res: Response): Promise<void>
         console.error('Error creating user profile for OAuth user:', profileError);
         // We don't want to fail registration if profile creation fails
         // The profile can be created later
+      }
+    } else {
+      // Existing user: enforce role consistency
+      if (user.role !== role) {
+        console.warn(`Role mismatch for ${user.email}: existing=${user.role}, requested=${role}`);
+        res.redirect(`${process.env.FRONTEND_URL}/auth/login?role=${role}&error=role_mismatch`);
+        return;
       }
     }
 
@@ -227,31 +226,23 @@ export const register = async (req: Request, res: Response): Promise<Response> =
       if (role === 'patient') {
         // Import here to avoid circular dependency
         const Patient = require('../models/patient.model').default;
-        
+
         const newPatient = new Patient({
-          userId: user._id,
-          name: name,
-          email: email,
-          dateOfBirth: new Date(), // Default value, can be updated later
-          phone: '',
-          medicalHistory: []
+          user: user._id,
+          // optional fields can be provided later
         });
-        
+
         await newPatient.save();
         console.log('Patient profile created');
       } else if (role === 'doctor') {
         // Import here to avoid circular dependency
         const Doctor = require('../models/doctor.model').default;
-        
+
         const newDoctor = new Doctor({
-          userId: user._id,
-          name: name,
-          email: email,
-          specialization: '', // Can be updated later
-          hospital: '',
-          licenseNumber: ''
+          user: user._id,
+          // optional fields can be provided later
         });
-        
+
         await newDoctor.save();
         console.log('Doctor profile created');
       }
@@ -285,12 +276,17 @@ export const register = async (req: Request, res: Response): Promise<Response> =
 // @access  Public
 export const login = async (req: Request, res: Response): Promise<Response> => {
   try {
-    const { email, password } = req.body;
+    const { email, password, role } = req.body as { email: string; password: string; role?: string };
 
     // Find user
     const user = await User.findOne({ email });
     if (!user) {
       return res.status(401).json({ message: 'Invalid credentials' });
+    }
+
+    // If a role was specified by the client, enforce role match
+    if (role && user.role !== role) {
+      return res.status(403).json({ message: `Account exists as ${user.role}. Please sign in as ${user.role} or use a different email.` });
     }
 
     // Check password

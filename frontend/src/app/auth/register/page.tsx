@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
 import { Eye, EyeOff, Mail, Lock, User, Stethoscope, Shield, Building2, Phone, Calendar } from 'lucide-react';
@@ -23,6 +23,19 @@ export default function RegisterPage() {
   const [loading, setLoading] = useState(false);
   const { register } = useAuth();
 
+  // Show errors from query (e.g., role_mismatch from OAuth)
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const params = new URLSearchParams(window.location.search);
+    const err = params.get('error');
+    if (!err) return;
+    if (err === 'role_mismatch') {
+      toast.error('This email is registered with a different role. Please register or sign in as that role.');
+    } else {
+      toast.error('Authentication error. Please try again.');
+    }
+  }, []);
+
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
@@ -42,7 +55,14 @@ export default function RegisterPage() {
       await register(formData);
       toast.success('Registration successful!');
     } catch (error) {
-      toast.error('Registration failed. Please try again.');
+      const msg = (error as any)?.message || '';
+      if (msg.toLowerCase().includes('user already exists')) {
+        toast.error('User already exists. Try signing in instead.');
+      } else if (msg.toLowerCase().includes('invalid') || msg.toLowerCase().includes('password')) {
+        toast.error(msg);
+      } else {
+        toast.error('Registration failed. Please try again.');
+      }
     } finally {
       setLoading(false);
     }

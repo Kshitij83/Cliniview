@@ -4,9 +4,9 @@ import { IUser } from './user.model';
 // Doctor interface - Simplified for minimal requirements
 export interface IDoctor extends Document {
   user: mongoose.Types.ObjectId | IUser;
-  licenseNumber: string;
-  specialization: string;
-  hospital: string;
+  licenseNumber?: string;
+  specialization?: string;
+  hospital?: string;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -21,16 +21,16 @@ const doctorSchema = new Schema<IDoctor>(
     },
     licenseNumber: {
       type: String,
-      required: true,
+      required: false,
       unique: true,
     },
     specialization: {
       type: String,
-      required: true,
+      required: false,
     },
     hospital: {
       type: String,
-      required: true,
+      required: false,
     }
   },
   {
