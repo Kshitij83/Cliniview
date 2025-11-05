@@ -2,10 +2,15 @@ import mongoose, { Document as MongoDocument, Schema, Model } from 'mongoose';
 import { IPatient } from './patient.model';
 import { IUser } from './user.model';
 
-// Document type - Simplified for minimal requirements
+/**
+ * Document type enumeration
+ */
 export type DocumentType = 'medical_report' | 'other';
 
-// Document interface - Simplified for minimal requirements
+/**
+ * Interface for Document document in MongoDB
+ * Represents a medical document uploaded by a patient
+ */
 export interface IDocument extends MongoDocument {
   patientId: mongoose.Types.ObjectId | IPatient;
   type: DocumentType;
@@ -20,7 +25,9 @@ export interface IDocument extends MongoDocument {
   updatedAt: Date;
 }
 
-// Document schema - Simplified for minimal requirements
+/**
+ * Mongoose schema for Document collection
+ */
 const documentSchema = new Schema<IDocument>(
   {
     patientId: {

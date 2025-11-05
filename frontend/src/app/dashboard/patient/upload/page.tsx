@@ -2,9 +2,11 @@
 
 import React, { useState, useCallback } from 'react';
 import { useDropzone } from 'react-dropzone';
+import { useRouter } from 'next/navigation';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
+import { apiClient } from '@/lib/api';
 import { 
   Upload, 
   FileText, 
@@ -30,8 +32,10 @@ interface UploadedFile {
 }
 
 export default function UploadPage() {
+  const router = useRouter();
   const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([]);
   const [dragActive, setDragActive] = useState(false);
+  const [saving, setSaving] = useState(false);
 
   const onDrop = useCallback((acceptedFiles: File[]) => {
     const newFiles: UploadedFile[] = acceptedFiles.map((file) => ({
@@ -40,18 +44,12 @@ export default function UploadPage() {
       type: 'other',
       title: file.name.replace(/\.[^/.]+$/, ''),
       description: '',
-      progress: 0,
-      status: 'uploading',
+      progress: 100, // Mark as ready for editing
+      status: 'completed',
       preview: file.type.startsWith('image/') ? URL.createObjectURL(file) : undefined,
     }));
 
     setUploadedFiles(prev => [...prev, ...newFiles]);
-
-    // Simulate upload progress
-    newFiles.forEach((uploadedFile) => {
-      simulateUpload(uploadedFile.id);
-    });
-
     toast.success(`${acceptedFiles.length} file(s) added successfully`);
   }, []);
 
@@ -65,22 +63,6 @@ export default function UploadPage() {
     maxSize: 10 * 1024 * 1024, // 10MB
   });
 
-  const simulateUpload = (fileId: string) => {
-    const interval = setInterval(() => {
-      setUploadedFiles(prev => prev.map(file => {
-        if (file.id === fileId) {
-          const newProgress = Math.min(file.progress + Math.random() * 30, 100);
-          if (newProgress >= 100) {
-            clearInterval(interval);
-            return { ...file, progress: 100, status: 'completed' as const };
-          }
-          return { ...file, progress: newProgress };
-        }
-        return file;
-      }));
-    }, 200);
-  };
-
   const updateFileDetails = (fileId: string, updates: Partial<UploadedFile>) => {
     setUploadedFiles(prev => prev.map(file => 
       file.id === fileId ? { ...file, ...updates } : file
@@ -88,8 +70,104 @@ export default function UploadPage() {
   };
 
   const removeFile = (fileId: string) => {
-    setUploadedFiles(prev => prev.filter(file => file.id !== fileId));
+    const file = uploadedFiles.find(f => f.id === fileId);
+    if (file?.preview) {
+      URL.revokeObjectURL(file.preview);
+    }
+    setUploadedFiles(prev => prev.filter(f => f.id !== fileId));
     toast.success('File removed');
+  };
+
+  const handleSaveAll = async () => {
+    if (uploadedFiles.length === 0) {
+      toast.error('No files to upload');
+      return;
+    }
+
+    setSaving(true);
+    let successCount = 0;
+    let failCount = 0;
+
+    for (const uploadedFile of uploadedFiles) {
+      try {
+        // Update status to uploading
+        setUploadedFiles(prev => prev.map(f =>
+          f.id === uploadedFile.id ? { ...f, status: 'uploading', progress: 0 } : f
+        ));
+
+        await apiClient.uploadDocument(
+          uploadedFile.file,
+          uploadedFile.title || uploadedFile.file.name,
+          uploadedFile.description,
+          uploadedFile.type,
+          (percent) => {
+            setUploadedFiles(prev => prev.map(f =>
+              f.id === uploadedFile.id ? { ...f, progress: percent } : f
+            ));
+          }
+        );
+
+        setUploadedFiles(prev => prev.map(f =>
+          f.id === uploadedFile.id ? { ...f, status: 'completed', progress: 100 } : f
+        ));
+        successCount++;
+      } catch (error: any) {
+        console.error('Upload error:', error);
+        setUploadedFiles(prev => prev.map(f =>
+          f.id === uploadedFile.id ? { ...f, status: 'error' } : f
+        ));
+        failCount++;
+      }
+    }
+
+    setSaving(false);
+
+    if (successCount > 0) {
+      toast.success(`${successCount} document(s) uploaded successfully`);
+      // Clean up blob URLs
+      uploadedFiles.forEach(f => {
+        if (f.preview) URL.revokeObjectURL(f.preview);
+      });
+      // Redirect to dashboard after short delay
+      setTimeout(() => {
+        router.push('/dashboard/patient');
+      }, 1500);
+    }
+
+    if (failCount > 0) {
+      toast.error(`${failCount} document(s) failed to upload`);
+    }
+  };
+
+  const handleCancel = () => {
+    // Clean up blob URLs
+    uploadedFiles.forEach(f => {
+      if (f.preview) URL.revokeObjectURL(f.preview);
+    });
+    setUploadedFiles([]);
+    toast.success('Upload cancelled');
+  };
+
+  const handlePreview = (uploadedFile: UploadedFile) => {
+    if (uploadedFile.preview) {
+      window.open(uploadedFile.preview, '_blank');
+    } else {
+      const url = URL.createObjectURL(uploadedFile.file);
+      window.open(url, '_blank');
+      setTimeout(() => URL.revokeObjectURL(url), 100);
+    }
+  };
+
+  const handleDownload = (uploadedFile: UploadedFile) => {
+    const url = URL.createObjectURL(uploadedFile.file);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = uploadedFile.file.name;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    toast.success('Download started');
   };
 
   const getFileIcon = (file: File) => {
@@ -260,11 +338,19 @@ export default function UploadPage() {
                           </div>
 
                           <div className="flex items-center space-x-2 pt-2">
-                            <Button variant="outline" size="sm">
+                            <Button 
+                              variant="outline" 
+                              size="sm"
+                              onClick={() => handlePreview(uploadedFile)}
+                            >
                               <Eye className="w-4 h-4 mr-2" />
                               Preview
                             </Button>
-                            <Button variant="outline" size="sm">
+                            <Button 
+                              variant="outline" 
+                              size="sm"
+                              onClick={() => handleDownload(uploadedFile)}
+                            >
                               <Download className="w-4 h-4 mr-2" />
                               Download
                             </Button>
@@ -278,11 +364,18 @@ export default function UploadPage() {
             </div>
 
             <div className="flex justify-end space-x-3 pt-4 border-t">
-              <Button variant="outline">
+              <Button 
+                variant="outline"
+                onClick={handleCancel}
+                disabled={saving}
+              >
                 Cancel
               </Button>
-              <Button>
-                Save All Documents
+              <Button
+                onClick={handleSaveAll}
+                disabled={saving || uploadedFiles.some(f => f.status === 'uploading')}
+              >
+                {saving ? 'Uploading...' : 'Save All Documents'}
               </Button>
             </div>
           </Card>

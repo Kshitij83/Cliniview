@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
@@ -17,8 +18,15 @@ import {
   SortDesc
 } from 'lucide-react';
 import { MedicalDocument } from '@/types';
+import { apiClient } from '@/lib/api';
+import toast from 'react-hot-toast';
 
+/**
+ * Medical Records page
+ * Lists all patient medical documents with search, filter, and sort capabilities
+ */
 export default function MedicalRecordsPage() {
+  const router = useRouter();
   const [documents, setDocuments] = useState<MedicalDocument[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -27,73 +35,58 @@ export default function MedicalRecordsPage() {
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
 
   useEffect(() => {
-    // Mock data - in real app, fetch from API
-    const mockDocuments: MedicalDocument[] = [
-      {
-        id: '1',
-        patientId: 'patient-1',
-        type: 'prescription',
-        title: 'Blood Pressure Medication',
-        description: 'Prescribed by Dr. Smith for hypertension management',
-        fileUrl: '/documents/prescription-1.pdf',
-        fileName: 'prescription-1.pdf',
-        fileSize: 1024000,
-        uploadedAt: '2024-01-15T10:30:00Z',
-        doctorId: 'doctor-1',
-      },
-      {
-        id: '2',
-        patientId: 'patient-1',
-        type: 'lab_report',
-        title: 'Blood Test Results',
-        description: 'Complete blood count and lipid panel',
-        fileUrl: '/documents/lab-report-1.pdf',
-        fileName: 'lab-report-1.pdf',
-        fileSize: 2048000,
-        uploadedAt: '2024-01-10T14:20:00Z',
-      },
-      {
-        id: '3',
-        patientId: 'patient-1',
-        type: 'medical_history',
-        title: 'Annual Physical Exam',
-        description: 'Comprehensive health assessment and screening',
-        fileUrl: '/documents/physical-exam-2024.pdf',
-        fileName: 'physical-exam-2024.pdf',
-        fileSize: 1536000,
-        uploadedAt: '2024-01-05T09:15:00Z',
-        doctorId: 'doctor-2',
-      },
-      {
-        id: '4',
-        patientId: 'patient-1',
-        type: 'lab_report',
-        title: 'Diabetes Screening',
-        description: 'HbA1c and glucose tolerance test results',
-        fileUrl: '/documents/diabetes-screening.pdf',
-        fileName: 'diabetes-screening.pdf',
-        fileSize: 1280000,
-        uploadedAt: '2023-12-20T11:45:00Z',
-      },
-      {
-        id: '5',
-        patientId: 'patient-1',
-        type: 'prescription',
-        title: 'Cholesterol Medication',
-        description: 'Statin therapy for cholesterol management',
-        fileUrl: '/documents/cholesterol-rx.pdf',
-        fileName: 'cholesterol-rx.pdf',
-        fileSize: 896000,
-        uploadedAt: '2023-12-15T16:30:00Z',
-        doctorId: 'doctor-1',
-      },
-    ];
-
-    setTimeout(() => {
-      setDocuments(mockDocuments);
-      setLoading(false);
-    }, 1000);
+    fetchDocuments();
   }, []);
+
+  const fetchDocuments = async () => {
+    setLoading(true);
+    try {
+      const docs = await apiClient.getMyDocuments();
+      
+      // Map backend data to frontend format
+      const mappedDocs: MedicalDocument[] = docs.map((doc: any) => ({
+        id: doc._id || doc.id,
+        patientId: doc.patientId,
+        type: mapDocumentType(doc.type),
+        title: doc.title,
+        description: doc.description || '',
+        fileUrl: doc.fileUrl,
+        fileName: doc.fileName,
+        fileSize: doc.fileSize,
+        uploadedAt: doc.createdAt || doc.uploadedAt,
+        doctorId: doc.doctorId,
+      }));
+      
+      setDocuments(mappedDocs);
+    } catch (error) {
+      console.error('Error fetching documents:', error);
+      toast.error('Failed to load medical records');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Map backend document types to frontend types
+  const mapDocumentType = (type: string): 'prescription' | 'lab_report' | 'medical_history' | 'other' => {
+    const typeMap: { [key: string]: 'prescription' | 'lab_report' | 'medical_history' | 'other' } = {
+      'medical_report': 'lab_report',
+      'prescription': 'prescription',
+      'lab_report': 'lab_report',
+      'medical_history': 'medical_history',
+      'other': 'other',
+    };
+    return typeMap[type] || 'other';
+  };
+
+  const handleDownload = (doc: MedicalDocument) => {
+    const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
+    const downloadUrl = API_BASE.replace('/api', '') + doc.fileUrl;
+    const link = window.document.createElement('a');
+    link.href = downloadUrl;
+    link.download = doc.fileName;
+    link.click();
+    toast.success('Downloading document...');
+  };
 
   const formatFileSize = (bytes: number) => {
     if (bytes === 0) return '0 Bytes';
@@ -251,10 +244,18 @@ export default function MedicalRecordsPage() {
                   </div>
                 </div>
                 <div className="flex items-center space-x-1">
-                  <Button variant="ghost" size="sm">
+                  <Button 
+                    variant="ghost" 
+                    size="sm"
+                    onClick={() => router.push(`/dashboard/patient/documents/${doc.id}`)}
+                  >
                     <Eye className="w-4 h-4" />
                   </Button>
-                  <Button variant="ghost" size="sm">
+                  <Button 
+                    variant="ghost" 
+                    size="sm"
+                    onClick={() => handleDownload(doc)}
+                  >
                     <Download className="w-4 h-4" />
                   </Button>
                 </div>
@@ -289,11 +290,21 @@ export default function MedicalRecordsPage() {
 
               <div className="mt-4 pt-4 border-t border-gray-200">
                 <div className="flex space-x-2">
-                  <Button variant="outline" size="sm" className="flex-1">
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    className="flex-1"
+                    onClick={() => router.push(`/dashboard/patient/documents/${doc.id}`)}
+                  >
                     <Eye className="w-4 h-4 mr-2" />
                     View
                   </Button>
-                  <Button variant="outline" size="sm" className="flex-1">
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    className="flex-1"
+                    onClick={() => handleDownload(doc)}
+                  >
                     <Download className="w-4 h-4 mr-2" />
                     Download
                   </Button>
@@ -314,9 +325,11 @@ export default function MedicalRecordsPage() {
                   : 'You haven\'t uploaded any medical documents yet.'
                 }
               </p>
-              <Button>
-                Upload Document
-              </Button>
+              {!searchTerm && filterType === 'all' && (
+                <Button onClick={() => router.push('/dashboard/patient/upload')}>
+                  Upload Document
+                </Button>
+              )}
             </div>
           </Card>
         )}

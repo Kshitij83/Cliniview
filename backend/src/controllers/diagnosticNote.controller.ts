@@ -3,9 +3,11 @@ import DiagnosticNote from '../models/diagnosticNote.model';
 import Doctor from '../models/doctor.model';
 import Document from '../models/document.model';
 
-// @desc    Add a comment to a document
-// @route   POST /api/notes
-// @access  Private (Doctor only)
+/**
+ * Add a diagnostic note/comment to a document
+ * @route   POST /api/notes
+ * @access  Private (Doctor only)
+ */
 export const addComment = async (req: Request, res: Response): Promise<Response> => {
   try {
     const { documentId, comments } = req.body;
@@ -56,9 +58,11 @@ export const addComment = async (req: Request, res: Response): Promise<Response>
   }
 };
 
-// @desc    Get all comments for a document
-// @route   GET /api/notes/document/:documentId
-// @access  Private
+/**
+ * Get all diagnostic notes/comments for a document
+ * @route   GET /api/notes/document/:documentId
+ * @access  Private
+ */
 export const getDocumentComments = async (req: Request, res: Response): Promise<Response> => {
   try {
     const documentId = req.params.documentId;

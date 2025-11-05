@@ -15,7 +15,14 @@ import {
   MessageCircle
 } from 'lucide-react';
 
+/**
+ * Doctor dashboard page
+ * Displays patients, documents, and quick actions for doctors
+ */
 // Simplified types
+/**
+ * Represents a patient in the doctor's view
+ */
 interface Patient {
   id: string;
   name: string;
@@ -24,6 +31,9 @@ interface Patient {
   phone: string;
 }
 
+/**
+ * Represents a medical document in the doctor's view
+ */
 interface Document {
   id: string;
   patientId: string;

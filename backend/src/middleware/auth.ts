@@ -2,7 +2,9 @@ import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
 import User, { IUser, UserRole } from '../models/user.model';
 
-// Extend Express Request to include user
+/**
+ * Extend Express Request to include authenticated user
+ */
 declare global {
   namespace Express {
     interface Request {
@@ -11,11 +13,17 @@ declare global {
   }
 }
 
+/**
+ * JWT token payload structure
+ */
 interface JwtPayload {
   id: string;
 }
 
-// Authenticate user middleware
+/**
+ * Authenticate user middleware
+ * Verifies JWT token and attaches user to request
+ */
 export const authenticate = async (req: Request, res: Response, next: NextFunction): Promise<void | Response> => {
   try {
     // Get token from header
@@ -44,7 +52,10 @@ export const authenticate = async (req: Request, res: Response, next: NextFuncti
   }
 };
 
-// Authorization middleware - check user role
+/**
+ * Authorization middleware - checks user role
+ * @param roles - Allowed roles for the route
+ */
 export const authorize = (...roles: UserRole[]) => {
   return (req: Request, res: Response, next: NextFunction): Response | void => {
     if (!req.user) {

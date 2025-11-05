@@ -18,6 +18,14 @@ import {
 } from 'lucide-react';
 import { apiClient } from '@/lib/api';
 
+/**
+ * Doctor document view page
+ * Displays a specific document with diagnostic notes
+ */
+
+/**
+ * Represents a diagnostic note for a document
+ */
 interface DiagnosticNote {
   id: string;
   documentId: string;

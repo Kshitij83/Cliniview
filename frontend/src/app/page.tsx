@@ -5,6 +5,11 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
 import { Stethoscope, Brain, Shield, Users, ArrowRight, CheckCircle } from 'lucide-react';
 
+/**
+ * Home page component
+ * Landing page that redirects authenticated users to their dashboard
+ * Shows marketing content for unauthenticated users
+ */
 export default function HomePage() {
   const { user, loading } = useAuth();
   const router = useRouter();

@@ -1,7 +1,9 @@
 import { Request, Response, NextFunction } from 'express';
 import { body, validationResult } from 'express-validator';
 
-// Validation middleware for registration
+/**
+ * Validation middleware for user registration
+ */
 export const validateRegister = [
   body('name').trim().notEmpty().withMessage('Name is required'),
   body('email').isEmail().withMessage('Please provide a valid email'),
@@ -22,7 +24,9 @@ export const validateRegister = [
   }
 ];
 
-// Validation middleware for login
+/**
+ * Validation middleware for user login
+ */
 export const validateLogin = [
   body('email').isEmail().withMessage('Please provide a valid email'),
   body('password').notEmpty().withMessage('Password is required'),

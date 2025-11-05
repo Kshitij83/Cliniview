@@ -5,6 +5,11 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { setTokenInStorage } from '@/lib/auth';
 import toast from 'react-hot-toast';
 
+/**
+ * OAuth callback handler page
+ * Processes Google OAuth redirect, extracts token, and redirects to dashboard
+ * Handles error cases and role mismatches
+ */
 export default function OAuthCallbackPage() {
   const router = useRouter();
   const searchParams = useSearchParams();

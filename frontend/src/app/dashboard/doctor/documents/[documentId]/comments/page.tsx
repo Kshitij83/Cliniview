@@ -17,6 +17,14 @@ import {
 } from 'lucide-react';
 import { apiClient } from '@/lib/api';
 
+/**
+ * Doctor comments page for adding/editing diagnostic notes
+ * Allows doctors to add findings and recommendations for a document
+ */
+
+/**
+ * Represents a diagnostic note for a document
+ */
 interface DiagnosticNote {
   id?: string;
   documentId: string;

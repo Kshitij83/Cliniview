@@ -7,10 +7,17 @@ import Sidebar from './Sidebar';
 import Header from './Header';
 import { Toaster } from 'react-hot-toast';
 
+/**
+ * DashboardLayout component props
+ */
 interface DashboardLayoutProps {
   children: React.ReactNode;
 }
 
+/**
+ * Main dashboard layout component
+ * Provides authentication check, sidebar, header, and content area
+ */
 export default function DashboardLayout({ children }: DashboardLayoutProps) {
   const { user, loading } = useAuth();
   const router = useRouter();

@@ -16,7 +16,10 @@ router.use(authenticate);
 // Upload a document - patients only
 router.post('/', authorize('patient'), upload.single('file'), uploadDocument);
 
-// Get patient's documents
+// Get current user's documents (for patients)
+router.get('/my-documents', authorize('patient'), getPatientDocuments);
+
+// Get patient's documents by patient ID
 router.get('/patient/:patientId', authorize('patient', 'doctor'), getPatientDocuments);
 
 // Get specific document

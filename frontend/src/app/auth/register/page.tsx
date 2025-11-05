@@ -6,6 +6,11 @@ import { useRouter } from 'next/navigation';
 import { Eye, EyeOff, Mail, Lock, User, Stethoscope, Shield, Building2, Phone, Calendar } from 'lucide-react';
 import toast from 'react-hot-toast';
 
+/**
+ * Registration page component
+ * Allows new users to create accounts with email/password or Google OAuth
+ * Role can be specified via URL query parameter
+ */
 export default function RegisterPage() {
   const router = useRouter();
   const searchParams = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : new URLSearchParams();

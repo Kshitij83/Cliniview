@@ -5,9 +5,11 @@ import DiagnosticNote from '../models/diagnosticNote.model';
 import fs from 'fs';
 import path from 'path';
 
-// @desc    Get document
-// @route   GET /api/documents/:id
-// @access  Private
+/**
+ * Get a specific document by ID with comments
+ * @route   GET /api/documents/:id
+ * @access  Private
+ */
 export const getDocument = async (req: Request, res: Response): Promise<Response> => {
   try {
     const documentId = req.params.id;
@@ -35,22 +37,26 @@ export const getDocument = async (req: Request, res: Response): Promise<Response
   }
 };
 
-// @desc    Upload a document
-// @route   POST /api/documents
-// @access  Private (Patient)
+/**
+ * Upload a new medical document
+ * @route   POST /api/documents
+ * @access  Private (Patient)
+ */
 export const uploadDocument = async (req: Request, res: Response): Promise<Response> => {
   try {
     if (!req.file) {
       return res.status(400).json({ message: 'Please upload a file' });
     }
 
-    // Get patient ID based on user ID
-    const patient = await Patient.findOne({ user: req.user!.id });
+    // Get patient ID based on user ID - create if doesn't exist
+    let patient = await Patient.findOne({ user: req.user!.id });
     
     if (!patient) {
-      // Delete the uploaded file
-      fs.unlinkSync(req.file.path);
-      return res.status(404).json({ message: 'Patient profile not found' });
+      // Create minimal patient profile if it doesn't exist
+      console.log('Creating patient profile for user:', req.user!.id);
+      patient = await Patient.create({
+        user: req.user!.id,
+      });
     }
     
     // Create document
@@ -83,20 +89,38 @@ export const uploadDocument = async (req: Request, res: Response): Promise<Respo
   }
 };
 
-// @desc    Get all documents for a patient
-// @route   GET /api/documents/patient/:patientId
-// @access  Private (Patient, Doctor)
+/**
+ * Get all documents for a patient
+ * @route   GET /api/documents/patient/:patientId OR /api/documents/my-documents
+ * @access  Private (Patient, Doctor)
+ */
 export const getPatientDocuments = async (req: Request, res: Response): Promise<Response> => {
   try {
-    const patientId = req.params.patientId;
+    let patientId = req.params.patientId;
     
-    // If the user is a patient, they should only be able to view their own documents
-    if (req.user?.role === 'patient') {
+    // If no patientId provided (my-documents route), get from current user
+    if (!patientId && req.user?.role === 'patient') {
       const patient = await Patient.findOne({ user: req.user.id });
       
-      if (!patient || patient.id.toString() !== patientId) {
+      if (!patient) {
+        // Return empty array if patient profile doesn't exist yet
+        return res.status(200).json([]);
+      }
+      
+      patientId = (patient as any)._id.toString();
+    }
+    
+    // If the user is a patient accessing someone else's documents
+    if (req.user?.role === 'patient' && patientId) {
+      const patient = await Patient.findOne({ user: req.user.id });
+      
+      if (!patient || (patient as any)._id.toString() !== patientId) {
         return res.status(403).json({ message: 'Not authorized to access these documents' });
       }
+    }
+    
+    if (!patientId) {
+      return res.status(400).json({ message: 'Patient ID required' });
     }
     
     const documents = await Document.find({ patientId })
@@ -110,9 +134,11 @@ export const getPatientDocuments = async (req: Request, res: Response): Promise<
   }
 };
 
-// @desc    Delete document
-// @route   DELETE /api/documents/:id
-// @access  Private (Patient, Doctor)
+/**
+ * Delete a document by ID
+ * @route   DELETE /api/documents/:id
+ * @access  Private (Patient, Doctor)
+ */
 export const deleteDocument = async (req: Request, res: Response): Promise<Response> => {
   try {
     const documentId = req.params.id;

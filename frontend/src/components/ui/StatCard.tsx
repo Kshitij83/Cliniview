@@ -1,6 +1,9 @@
 import React from 'react';
 import { LucideIcon } from 'lucide-react';
 
+/**
+ * StatCard component props
+ */
 interface StatCardProps {
   title: string;
   value: string | number;
@@ -12,6 +15,10 @@ interface StatCardProps {
   color?: 'blue' | 'green' | 'purple' | 'red' | 'yellow';
 }
 
+/**
+ * StatCard component for displaying dashboard statistics
+ * Shows title, value, optional change percentage, and icon
+ */
 export default function StatCard({ title, value, change, icon: Icon, color = 'blue' }: StatCardProps) {
   const colorClasses = {
     blue: 'bg-blue-100 text-blue-600',

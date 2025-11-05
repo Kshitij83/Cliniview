@@ -18,6 +18,14 @@ import {
 } from 'lucide-react';
 import { apiClient } from '@/lib/api';
 
+/**
+ * Patient document view page
+ * Displays a specific medical document with diagnostic notes from doctors
+ */
+
+/**
+ * Represents a diagnostic note on a patient's document
+ */
 interface DiagnosticNote {
   id: string;
   documentId: string;
@@ -57,54 +65,39 @@ export default function PatientDocumentViewPage() {
     const fetchData = async () => {
       setLoading(true);
       try {
-        // Try to fetch the document and notes from the API
+        // Fetch document details using dedicated endpoint
+        const response = await apiClient.getDocument(documentId);
+        const doc = response.document;
+        
+        if (doc) {
+          setDocument({
+            id: doc._id || doc.id,
+            patientId: doc.patientId,
+            title: doc.title,
+            description: doc.description || '',
+            fileUrl: doc.fileUrl,
+            fileName: doc.fileName,
+            fileType: doc.mimeType || doc.fileType,
+            createdAt: doc.createdAt,
+            updatedAt: doc.updatedAt,
+          });
+          
+          // Set viewer URL - use backend URL
+          const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
+          setViewerUrl(API_BASE.replace('/api', '') + doc.fileUrl);
+        }
+        
+        // Fetch diagnostic notes (returned with document but also fetch separately)
         try {
-          const response = await fetch(`/api/documents/${documentId}`);
-          if (!response.ok) throw new Error('Document not found');
-          const documentData = await response.json();
-          setDocument(documentData as Document);
-          
-          // Fetch diagnostic notes
-          const notesResponse = await apiClient.getDiagnosticNotes(documentId);
-          setDiagnosticNotes(notesResponse as DiagnosticNote[]);
-          
-          // Set document viewer URL
-          setViewerUrl(`/api/documents/view/${documentId}`);
-        } catch (apiError) {
-          console.warn('API request failed, using mock data:', apiError);
-          throw apiError; // Re-throw to use mock data
+          const notes = await apiClient.getDiagnosticNotes(documentId);
+          setDiagnosticNotes(notes);
+        } catch (noteError) {
+          console.log('No diagnostic notes yet:', noteError);
+          setDiagnosticNotes([]);
         }
       } catch (err) {
-        console.error('Error fetching data:', err);
-        setError('Failed to load document information');
-        
-        // Fallback to mock data
-        setDocument({
-          id: documentId,
-          patientId: '1',
-          title: 'Blood Test Results',
-          description: 'Complete blood count and lipid panel',
-          fileUrl: '/documents/lab-report-1.pdf',
-          fileName: 'lab-report-1.pdf',
-          fileType: 'application/pdf',
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-        });
-        
-        // Mock diagnostic notes
-        setDiagnosticNotes([
-          {
-            id: '1',
-            documentId: documentId,
-            doctorId: 'd1',
-            doctorName: 'Dr. Sarah Johnson',
-            content: 'The blood test results show normal values for most parameters, but there is a slight elevation in cholesterol levels.',
-            findings: 'Total cholesterol: 220 mg/dL (borderline high)\nLDL: 140 mg/dL (borderline high)\nHDL: 45 mg/dL (acceptable)\nTriglycerides: 150 mg/dL (normal)',
-            recommendations: 'Recommend dietary changes to reduce cholesterol intake. Consider follow-up test in 3 months if lifestyle modifications don\'t improve levels.',
-            createdAt: new Date(Date.now() - 86400000).toISOString(),
-            updatedAt: new Date(Date.now() - 86400000).toISOString()
-          }
-        ]);
+        console.error('Error fetching document:', err);
+        setError('Failed to load document');
       } finally {
         setLoading(false);
       }
@@ -194,7 +187,20 @@ export default function PatientDocumentViewPage() {
             </div>
             
             <div>
-              <Button variant="outline" size="sm">
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={() => {
+                  if (document?.fileUrl) {
+                    const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
+                    const downloadUrl = API_BASE.replace('/api', '') + document.fileUrl;
+                    const link = window.document.createElement('a');
+                    link.href = downloadUrl;
+                    link.download = document.fileName;
+                    link.click();
+                  }
+                }}
+              >
                 <Download className="w-4 h-4 mr-2" />
                 Download
               </Button>
@@ -204,7 +210,7 @@ export default function PatientDocumentViewPage() {
         
         {/* Document Preview */}
         <Card title="Document Preview">
-          <div className="bg-gray-100 rounded-lg border border-gray-300 p-4 h-96 flex items-center justify-center">
+          <div className="bg-gray-100 rounded-lg border border-gray-300 p-4 h-[720px] flex items-center justify-center">
             {viewerUrl ? (
               <iframe
                 src={viewerUrl}

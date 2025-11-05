@@ -1,5 +1,8 @@
 import React from 'react';
 
+/**
+ * Card component props
+ */
 interface CardProps {
   children: React.ReactNode;
   className?: string;
@@ -8,6 +11,10 @@ interface CardProps {
   actions?: React.ReactNode;
 }
 
+/**
+ * Reusable Card component with optional header
+ * Provides consistent styling for content containers
+ */
 export default function Card({ children, className = '', title, subtitle, actions }: CardProps) {
   return (
     <div className={`bg-white rounded-lg shadow-sm border border-gray-200 ${className}`}>

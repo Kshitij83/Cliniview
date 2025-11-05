@@ -3,9 +3,11 @@ import Doctor from '../models/doctor.model';
 import Patient from '../models/patient.model';
 import DiagnosticNote from '../models/diagnosticNote.model';
 
-// @desc    Get doctor profile
-// @route   GET /api/doctors/:id
-// @access  Private
+/**
+ * Get doctor profile by user ID
+ * @route   GET /api/doctors/:id
+ * @access  Private
+ */
 export const getDoctor = async (req: Request, res: Response): Promise<Response> => {
   try {
     const doctorId = req.params.id;
@@ -23,9 +25,11 @@ export const getDoctor = async (req: Request, res: Response): Promise<Response> 
   }
 };
 
-// @desc    Update doctor profile
-// @route   PUT /api/doctors/:id
-// @access  Private (Doctor only)
+/**
+ * Update doctor profile
+ * @route   PUT /api/doctors/:id
+ * @access  Private (Doctor only)
+ */
 export const updateDoctor = async (req: Request, res: Response): Promise<Response> => {
   try {
     const doctorId = req.params.id;
@@ -49,9 +53,11 @@ export const updateDoctor = async (req: Request, res: Response): Promise<Respons
   }
 };
 
-// @desc    Get doctor's patients
-// @route   GET /api/doctors/:id/patients
-// @access  Private (Doctor only)
+/**
+ * Get list of patients associated with a doctor
+ * @route   GET /api/doctors/:id/patients
+ * @access  Private (Doctor only)
+ */
 export const getPatients = async (req: Request, res: Response): Promise<Response> => {
   try {
     const doctorId = req.params.id;
@@ -75,9 +81,11 @@ export const getPatients = async (req: Request, res: Response): Promise<Response
   }
 };
 
-// @desc    Add diagnostic note for a patient
-// @route   POST /api/doctors/patients/:id/diagnostic-notes
-// @access  Private (Doctor only)
+/**
+ * Add a diagnostic note for a patient
+ * @route   POST /api/doctors/patients/:id/diagnostic-notes
+ * @access  Private (Doctor only)
+ */
 export const addDiagnosticNote = async (req: Request, res: Response): Promise<Response> => {
   try {
     const patientId = req.params.id;

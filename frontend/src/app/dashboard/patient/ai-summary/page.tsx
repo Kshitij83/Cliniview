@@ -19,7 +19,14 @@ import {
   BarChart3
 } from 'lucide-react';
 import { AIHealthSummary } from '@/types';
+import { apiClient } from '@/lib/api';
+import toast from 'react-hot-toast';
 
+/**
+ * AI Health Summary page
+ * Displays AI-generated health analysis for patient
+ * Shows risk factors, insights, and recommendations
+ */
 export default function AIHealthSummaryPage() {
   const [aiSummary, setAiSummary] = useState<AIHealthSummary | null>(null);
   const [loading, setLoading] = useState(true);
@@ -27,85 +34,43 @@ export default function AIHealthSummaryPage() {
   const [historicalSummaries, setHistoricalSummaries] = useState<AIHealthSummary[]>([]);
 
   useEffect(() => {
-    // Mock data - in real app, fetch from API
-    const mockSummary: AIHealthSummary = {
-      id: '1',
-      patientId: 'patient-1',
-      summary: 'Your recent health data shows stable blood pressure and cholesterol levels. Your medication adherence is excellent, and your lifestyle modifications are showing positive results. Continue with your current treatment plan and maintain regular exercise routine.',
-      riskFactors: [
-        'Family history of diabetes',
-        'Sedentary lifestyle (improving)',
-        'Previous high cholesterol',
-        'Age-related cardiovascular risk'
-      ],
-      recommendations: [
-        'Continue current blood pressure medication as prescribed',
-        'Increase physical activity to 150 minutes per week',
-        'Schedule follow-up appointment in 3 months',
-        'Monitor blood sugar levels monthly',
-        'Maintain low-sodium diet',
-        'Consider stress management techniques'
-      ],
-      generatedAt: '2024-01-15T09:00:00Z',
-      confidence: 0.87,
-    };
-
-    const mockHistorical: AIHealthSummary[] = [
-      {
-        id: '2',
-        patientId: 'patient-1',
-        summary: 'Previous analysis showed elevated cholesterol levels requiring medication adjustment. Blood pressure was well-controlled with current treatment.',
-        riskFactors: ['High cholesterol', 'Family history of diabetes'],
-        recommendations: ['Start statin therapy', 'Dietary modifications'],
-        generatedAt: '2023-12-15T10:00:00Z',
-        confidence: 0.82,
-      },
-      {
-        id: '3',
-        patientId: 'patient-1',
-        summary: 'Initial assessment indicated need for lifestyle modifications and regular monitoring of cardiovascular health markers.',
-        riskFactors: ['Family history of diabetes', 'Sedentary lifestyle'],
-        recommendations: ['Begin exercise program', 'Dietary counseling'],
-        generatedAt: '2023-11-01T14:30:00Z',
-        confidence: 0.79,
-      },
-    ];
-
-    setTimeout(() => {
-      setAiSummary(mockSummary);
-      setHistoricalSummaries(mockHistorical);
-      setLoading(false);
-    }, 1000);
+    fetchAISummary();
   }, []);
+
+  const fetchAISummary = async () => {
+    setLoading(true);
+    try {
+      // TODO: Implement real API call
+      // const summary = await apiClient.getAIHealthSummary();
+      // setAiSummary(summary);
+      
+      // For now, set to null to show empty state
+      setAiSummary(null);
+      setHistoricalSummaries([]);
+    } catch (error) {
+      console.error('Error fetching AI summary:', error);
+      toast.error('Failed to load AI health summary');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const generateNewSummary = async () => {
     setGenerating(true);
     
-    // Simulate AI generation
-    setTimeout(() => {
-      const newSummary: AIHealthSummary = {
-        id: Math.random().toString(36).substr(2, 9),
-        patientId: 'patient-1',
-        summary: 'Updated analysis based on latest medical data shows continued improvement in your health metrics. Your blood pressure remains stable, and cholesterol levels are within target range. Your medication adherence and lifestyle changes are contributing to positive health outcomes.',
-        riskFactors: [
-          'Family history of diabetes (monitored)',
-          'Previous high cholesterol (controlled)',
-          'Age-related cardiovascular risk (managed)'
-        ],
-        recommendations: [
-          'Continue current medication regimen',
-          'Maintain regular exercise routine',
-          'Schedule next appointment in 2 months',
-          'Continue monitoring blood pressure weekly',
-          'Keep dietary modifications in place'
-        ],
-        generatedAt: new Date().toISOString(),
-        confidence: 0.91,
-      };
+    try {
+      // TODO: Implement real API call to generate summary
+      // const newSummary = await apiClient.generateAIHealthSummary();
+      // setAiSummary(newSummary);
+      // toast.success('AI Health Summary generated successfully!');
       
-      setAiSummary(newSummary);
+      toast.error('AI generation not yet implemented. Coming soon!');
+    } catch (error) {
+      console.error('Error generating summary:', error);
+      toast.error('Failed to generate AI health summary');
+    } finally {
       setGenerating(false);
-    }, 3000);
+    }
   };
 
   const formatDate = (dateString: string) => {
@@ -226,35 +191,8 @@ export default function AIHealthSummaryPage() {
               </div>
             </Card>
 
-            {/* Health Metrics */}
-            <Card title="Health Metrics Overview">
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                <div className="text-center p-4 bg-red-50 rounded-lg">
-                  <Heart className="w-8 h-8 text-red-600 mx-auto mb-2" />
-                  <h3 className="text-2xl font-bold text-red-900">120/80</h3>
-                  <p className="text-red-700">Blood Pressure</p>
-                  <span className="text-xs text-green-600">✓ Normal</span>
-                </div>
-                <div className="text-center p-4 bg-blue-50 rounded-lg">
-                  <Activity className="w-8 h-8 text-blue-600 mx-auto mb-2" />
-                  <h3 className="text-2xl font-bold text-blue-900">180</h3>
-                  <p className="text-blue-700">Cholesterol</p>
-                  <span className="text-xs text-green-600">✓ Good</span>
-                </div>
-                <div className="text-center p-4 bg-green-50 rounded-lg">
-                  <Zap className="w-8 h-8 text-green-600 mx-auto mb-2" />
-                  <h3 className="text-2xl font-bold text-green-900">5.2</h3>
-                  <p className="text-green-700">HbA1c</p>
-                  <span className="text-xs text-green-600">✓ Controlled</span>
-                </div>
-                <div className="text-center p-4 bg-purple-50 rounded-lg">
-                  <Shield className="w-8 h-8 text-purple-600 mx-auto mb-2" />
-                  <h3 className="text-2xl font-bold text-purple-900">85%</h3>
-                  <p className="text-purple-700">Health Score</p>
-                  <span className="text-xs text-green-600">↑ Improving</span>
-                </div>
-              </div>
-            </Card>
+            {/* Health Metrics - Coming Soon */}
+            {/* TODO: Add health metrics from ML service integration */}
 
             {/* Historical Summaries */}
             <Card title="Historical Summaries">
@@ -295,35 +233,8 @@ export default function AIHealthSummaryPage() {
           </Card>
         )}
 
-        {/* AI Insights */}
-        <Card title="AI Insights & Trends">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="p-4 bg-blue-50 rounded-lg">
-              <div className="flex items-center space-x-2 mb-2">
-                <TrendingUp className="w-5 h-5 text-blue-600" />
-                <h4 className="font-medium text-blue-900">Positive Trends</h4>
-              </div>
-              <ul className="space-y-1 text-sm text-blue-800">
-                <li>• Blood pressure consistently within normal range</li>
-                <li>• Improved medication adherence</li>
-                <li>• Increased physical activity levels</li>
-                <li>• Better dietary compliance</li>
-              </ul>
-            </div>
-            <div className="p-4 bg-yellow-50 rounded-lg">
-              <div className="flex items-center space-x-2 mb-2">
-                <BarChart3 className="w-5 h-5 text-yellow-600" />
-                <h4 className="font-medium text-yellow-900">Areas to Monitor</h4>
-              </div>
-              <ul className="space-y-1 text-sm text-yellow-800">
-                <li>• Continue monitoring cholesterol levels</li>
-                <li>• Maintain regular exercise routine</li>
-                <li>• Schedule follow-up appointments</li>
-                <li>• Monitor stress levels</li>
-              </ul>
-            </div>
-          </div>
-        </Card>
+        {/* AI Insights - Coming Soon */}
+        {/* TODO: Add AI-generated insights once ML service is integrated */}
       </div>
     </DashboardLayout>
   );

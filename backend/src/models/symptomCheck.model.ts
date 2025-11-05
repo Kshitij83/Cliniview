@@ -1,23 +1,32 @@
 import mongoose, { Document, Schema, Model } from 'mongoose';
 import { IPatient } from './patient.model';
 
-// Interface for possible conditions
+/**
+ * Interface for possible conditions from symptom check
+ */
 interface IPossibleCondition {
   name: string;
   probability: number;
   description?: string;
 }
 
-// Interface for user feedback
+/**
+ * Interface for user feedback on symptom check results
+ */
 interface IUserFeedback {
   wasHelpful?: boolean;
   comments?: string;
 }
 
-// Severity type
+/**
+ * Severity level enumeration
+ */
 export type SeverityLevel = 'low' | 'medium' | 'high';
 
-// SymptomCheck interface
+/**
+ * Interface for SymptomCheck document in MongoDB
+ * Represents an AI-powered symptom analysis result
+ */
 export interface ISymptomCheck extends Document {
   patientId: mongoose.Types.ObjectId | IPatient;
   symptoms: string[];
@@ -31,7 +40,9 @@ export interface ISymptomCheck extends Document {
   updatedAt: Date;
 }
 
-// SymptomCheck schema
+/**
+ * Mongoose schema for SymptomCheck collection
+ */
 const symptomCheckSchema = new Schema<ISymptomCheck>(
   {
     patientId: {

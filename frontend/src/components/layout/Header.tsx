@@ -4,10 +4,17 @@ import React, { useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Menu, User, Settings, LogOut } from 'lucide-react';
 
+/**
+ * Header component props
+ */
 interface HeaderProps {
   onMenuClick: () => void;
 }
 
+/**
+ * Dashboard header component
+ * Shows user info, role badge, and logout menu
+ */
 export default function Header({ onMenuClick }: HeaderProps) {
   const { user, logout } = useAuth();
   const [showUserMenu, setShowUserMenu] = useState(false);
@@ -18,8 +25,6 @@ export default function Header({ onMenuClick }: HeaderProps) {
         return 'bg-blue-100 text-blue-600';
       case 'doctor':
         return 'bg-green-100 text-green-600';
-      case 'insurance':
-        return 'bg-purple-100 text-purple-600';
       case 'admin':
         return 'bg-red-100 text-red-600';
       default:
@@ -42,7 +47,6 @@ export default function Header({ onMenuClick }: HeaderProps) {
             <h1 className="text-xl font-semibold text-gray-900">
               {user?.role === 'patient' && 'Patient Dashboard'}
               {user?.role === 'doctor' && 'Doctor Dashboard'}
-              {user?.role === 'insurance' && 'Insurance Dashboard'}
               {user?.role === 'admin' && 'Admin Dashboard'}
             </h1>
           </div>

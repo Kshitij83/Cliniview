@@ -1,7 +1,10 @@
 import mongoose, { Document, Schema, Model } from 'mongoose';
 import { IUser } from './user.model';
 
-// Patient interface - Simplified for minimal requirements
+/**
+ * Interface for Patient document in MongoDB
+ * Represents a patient's profile with optional personal health information
+ */
 export interface IPatient extends Document {
   user: mongoose.Types.ObjectId | IUser;
   dateOfBirth?: Date;
@@ -11,7 +14,10 @@ export interface IPatient extends Document {
   updatedAt: Date;
 }
 
-// Patient schema - Simplified for minimal requirements
+/**
+ * Mongoose schema for Patient collection
+ * Links to User document and stores optional personal health details
+ */
 const patientSchema = new Schema<IPatient>(
   {
     user: {
@@ -38,6 +44,10 @@ const patientSchema = new Schema<IPatient>(
   }
 );
 
+/**
+ * Patient model for database operations
+ * Used to manage patient profiles and medical information
+ */
 const Patient: Model<IPatient> = mongoose.model<IPatient>('Patient', patientSchema);
 
 export default Patient;

@@ -3,9 +3,11 @@ import Patient from '../models/patient.model';
 import Document from '../models/document.model';
 import AIHealthSummary from '../models/aiHealthSummary.model';
 
-// @desc    Get patient profile
-// @route   GET /api/patients/:id
-// @access  Private
+/**
+ * Get patient profile by user ID
+ * @route   GET /api/patients/:id
+ * @access  Private
+ */
 export const getPatient = async (req: Request, res: Response): Promise<Response> => {
   try {
     const patientId = req.params.id;
@@ -23,9 +25,11 @@ export const getPatient = async (req: Request, res: Response): Promise<Response>
   }
 };
 
-// @desc    Update patient profile
-// @route   PUT /api/patients/:id
-// @access  Private (Patient, Doctor)
+/**
+ * Update patient profile
+ * @route   PUT /api/patients/:id
+ * @access  Private (Patient, Doctor)
+ */
 export const updatePatient = async (req: Request, res: Response): Promise<Response> => {
   try {
     const patientId = req.params.id;
@@ -49,9 +53,11 @@ export const updatePatient = async (req: Request, res: Response): Promise<Respon
   }
 };
 
-// @desc    Upload document for a patient
-// @route   POST /api/patients/:id/documents
-// @access  Private (Patient, Doctor)
+/**
+ * Upload a document for a patient
+ * @route   POST /api/patients/:id/documents
+ * @access  Private (Patient, Doctor)
+ */
 export const uploadDocument = async (req: Request, res: Response): Promise<Response> => {
   try {
     const patientId = req.params.id;
@@ -86,9 +92,11 @@ export const uploadDocument = async (req: Request, res: Response): Promise<Respo
   }
 };
 
-// @desc    Get documents for a patient
-// @route   GET /api/patients/:id/documents
-// @access  Private (Patient, Doctor)
+/**
+ * Get all documents for a patient
+ * @route   GET /api/patients/:id/documents
+ * @access  Private (Patient, Doctor)
+ */
 export const getDocuments = async (req: Request, res: Response): Promise<Response> => {
   try {
     const patientId = req.params.id;
@@ -104,9 +112,11 @@ export const getDocuments = async (req: Request, res: Response): Promise<Respons
   }
 };
 
-// @desc    Get AI health summary for a patient
-// @route   GET /api/patients/:id/ai-summary
-// @access  Private (Patient, Doctor)
+/**
+ * Get AI health summary for a patient
+ * @route   GET /api/patients/:id/ai-summary
+ * @access  Private (Patient, Doctor)
+ */
 export const getAIHealthSummary = async (req: Request, res: Response): Promise<Response> => {
   try {
     const patientId = req.params.id;

@@ -2,7 +2,10 @@ import mongoose, { Document, Schema, Model } from 'mongoose';
 import { IPatient } from './patient.model';
 import { IDocument } from './document.model';
 
-// AIHealthSummary interface
+/**
+ * Interface for AIHealthSummary document in MongoDB
+ * Represents an AI-generated health summary for a patient
+ */
 export interface IAIHealthSummary extends Document {
   patientId: mongoose.Types.ObjectId | IPatient;
   summary: string;
@@ -16,7 +19,9 @@ export interface IAIHealthSummary extends Document {
   updatedAt: Date;
 }
 
-// AIHealthSummary schema
+/**
+ * Mongoose schema for AIHealthSummary collection
+ */
 const aiHealthSummarySchema = new Schema<IAIHealthSummary>(
   {
     patientId: {

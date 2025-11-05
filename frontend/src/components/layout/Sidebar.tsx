@@ -22,11 +22,18 @@ import {
   ClipboardList,
 } from 'lucide-react';
 
+/**
+ * Sidebar component props
+ */
 interface SidebarProps {
   isOpen: boolean;
   onClose: () => void;
 }
 
+/**
+ * Dashboard sidebar navigation component
+ * Shows role-specific navigation links
+ */
 export default function Sidebar({ isOpen, onClose }: SidebarProps) {
   const pathname = usePathname();
   const { user, logout } = useAuth();
@@ -104,7 +111,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
 
       {/* Sidebar */}
       <div
-        className={`fixed inset-y-0 left-0 z-50 w-64 bg-white shadow-lg transform transition-transform duration-300 ease-in-out lg:translate-x-0 lg:static lg:inset-0 ${
+        className={`fixed inset-y-0 left-0 z-50 w-64 bg-white shadow-lg transform transition-transform duration-300 ease-in-out lg:translate-x-0 ${
           isOpen ? 'translate-x-0' : '-translate-x-full'
         }`}
       >

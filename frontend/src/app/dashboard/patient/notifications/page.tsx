@@ -18,6 +18,10 @@ import {
 } from 'lucide-react';
 import { Notification } from '@/types';
 
+/**
+ * Patient notifications page
+ * Displays and manages patient notifications with filtering and search
+ */
 export default function NotificationsPage() {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(true);

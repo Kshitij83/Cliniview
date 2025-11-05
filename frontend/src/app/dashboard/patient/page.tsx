@@ -46,35 +46,37 @@ export default function PatientDashboard() {
       window.history.replaceState({}, '', newUrl);
     }
 
-    // Mock data - in real app, fetch from API
-    const mockDocuments: Document[] = [
-      {
-        id: '1',
-        title: 'Blood Test Results',
-        description: 'Complete blood count',
-        fileUrl: '/documents/blood-test.pdf',
-        fileName: 'blood-test.pdf',
-        fileSize: 1024000,
-        createdAt: new Date().toISOString(),
-        hasDoctorComments: true
-      },
-      {
-        id: '2',
-        title: 'X-Ray Report',
-        description: 'Chest X-ray',
-        fileUrl: '/documents/xray.pdf',
-        fileName: 'xray.pdf',
-        fileSize: 2048000,
-        createdAt: new Date(Date.now() - 86400000).toISOString(), // 1 day ago
-        hasDoctorComments: false
-      },
-    ];
+    // Fetch real documents from API
+    const fetchDocuments = async () => {
+      setLoading(true);
+      try {
+        const { apiClient } = await import('@/lib/api');
+        const docs = await apiClient.getMyDocuments();
+        
+        // Map to expected shape
+        const mappedDocs: Document[] = docs.map((doc: any) => ({
+          id: doc._id || doc.id,
+          title: doc.title,
+          description: doc.description || '',
+          fileUrl: doc.fileUrl,
+          fileName: doc.fileName,
+          fileSize: doc.fileSize,
+          createdAt: doc.createdAt,
+          hasDoctorComments: false, // Could check diagnosticNotes if needed
+        }));
+        
+        setDocuments(mappedDocs);
+      } catch (error) {
+        console.error('Failed to fetch documents:', error);
+        // Fallback to empty on error
+        setDocuments([]);
+      } finally {
+        setLoading(false);
+      }
+    };
 
-    setTimeout(() => {
-      setDocuments(mockDocuments);
-      setLoading(false);
-    }, 500);
-  }, []);
+    fetchDocuments();
+  }, [searchParams]);
 
   const formatFileSize = (bytes: number) => {
     if (bytes === 0) return '0 Bytes';

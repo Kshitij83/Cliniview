@@ -6,6 +6,10 @@ import { getCurrentUser, removeTokenFromStorage, setTokenInStorage } from '@/lib
 import { apiClient } from '@/lib/api';
 import { User } from '@/types';
 
+/**
+ * Authentication context interface
+ * Provides user state and authentication methods throughout the app
+ */
 interface AuthContextType {
   user: User | null;
   loading: boolean;
@@ -15,8 +19,17 @@ interface AuthContextType {
   isAuthenticated: boolean;
 }
 
+/**
+ * React context for authentication state
+ * Must be wrapped with AuthProvider to use
+ */
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+/**
+ * Hook to access authentication context
+ * Must be used within AuthProvider component
+ * @returns Authentication state and methods
+ */
 export const useAuth = () => {
   const context = useContext(AuthContext);
   if (context === undefined) {
@@ -25,6 +38,11 @@ export const useAuth = () => {
   return context;
 };
 
+/**
+ * Authentication provider component
+ * Manages user authentication state and provides login/register/logout methods
+ * Wraps the app to make auth available everywhere
+ */
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);

@@ -1,10 +1,15 @@
 import mongoose, { Document, Schema, Model } from 'mongoose';
 import bcrypt from 'bcrypt';
 
-// Define the role type
+/**
+ * User role types in the system
+ */
 export type UserRole = 'patient' | 'doctor';
 
-// User interface
+/**
+ * Interface for User document in MongoDB
+ * Represents a user account with authentication details
+ */
 export interface IUser extends Document {
   email: string;
   name: string;
@@ -18,7 +23,9 @@ export interface IUser extends Document {
   comparePassword(candidatePassword: string): Promise<boolean>;
 }
 
-// User schema
+/**
+ * Mongoose schema for User collection
+ */
 const userSchema = new Schema<IUser>(
   {
     email: {

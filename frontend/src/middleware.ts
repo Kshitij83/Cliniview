@@ -1,6 +1,10 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
+/**
+ * Next.js middleware for route protection
+ * Checks authentication status for protected routes
+ */
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
   

@@ -14,19 +14,30 @@ console.log("- GOOGLE_CLIENT_ID:", process.env.GOOGLE_CLIENT_ID ? "defined" : "u
 console.log("- GOOGLE_CLIENT_SECRET:", process.env.GOOGLE_CLIENT_SECRET ? "defined" : "undefined");
 console.log("- GOOGLE_CALLBACK_URL:", process.env.GOOGLE_CALLBACK_URL);
 
-// Create a new OAuth2 client with the configured keys
+/**
+ * Google OAuth2 client instance for authentication
+ * Configured with client ID, secret, and callback URL from environment
+ */
 const oauth2Client = new google.auth.OAuth2(
   process.env.GOOGLE_CLIENT_ID,
   process.env.GOOGLE_CLIENT_SECRET,
   process.env.GOOGLE_CALLBACK_URL
 );
 
+/**
+ * JWT payload structure for authentication tokens
+ * Contains user ID, email, and role information
+ */
 interface TokenPayload {
   id: string;
   email: string;
   role: string;
 }
 
+/**
+ * Payload structure from Google OAuth response
+ * Contains user profile information from Google
+ */
 interface GoogleTokenPayload {
   email: string;
   name: string;
@@ -35,7 +46,11 @@ interface GoogleTokenPayload {
   family_name?: string;
 }
 
-// Generate JWT token
+/**
+ * Generates a JWT authentication token for a user
+ * @param user - The user document to generate token for
+ * @returns Signed JWT token string
+ */
 const generateToken = (user: IUser): string => {
   const secret = process.env.JWT_SECRET || 'fallback_secret';
   const payload = { id: user._id, email: user.email, role: user.role } as TokenPayload;
@@ -44,9 +59,11 @@ const generateToken = (user: IUser): string => {
   return jwt.sign(payload, secret, { expiresIn: process.env.JWT_EXPIRES_IN || '7d' } as any);
 };
 
-// @desc    Google OAuth login
-// @route   GET /api/auth/google
-// @access  Public
+/**
+ * Initiates Google OAuth authentication flow
+ * Redirects user to Google consent screen with role parameter
+ * @route GET /api/auth/google
+ */
 export const googleAuth = (req: Request, res: Response): void => {
   // Get the role from query parameters (default to 'patient')
   const role = req.query.role || 'patient';
@@ -70,9 +87,11 @@ export const googleAuth = (req: Request, res: Response): void => {
   res.redirect(authorizeUrl);
 };
 
-// @desc    Google OAuth callback
-// @route   GET /api/auth/google/callback
-// @access  Public
+/**
+ * Handles Google OAuth callback after user authorization
+ * Exchanges authorization code for tokens, creates/finds user, and redirects to dashboard
+ * @route GET /api/auth/google/callback
+ */
 export const googleCallback = async (req: Request, res: Response): Promise<void> => {
   try {
     const { code } = req.query;
@@ -197,9 +216,11 @@ export const googleCallback = async (req: Request, res: Response): Promise<void>
   }
 };
 
-// @desc    Register a new user
-// @route   POST /api/auth/register
-// @access  Public
+/**
+ * Registers a new user with email/password
+ * Creates user account and associated patient/doctor profile
+ * @route POST /api/auth/register
+ */
 export const register = async (req: Request, res: Response): Promise<Response> => {
   try {
     const { name, email, password, role } = req.body;
@@ -271,9 +292,11 @@ export const register = async (req: Request, res: Response): Promise<Response> =
   }
 };
 
-// @desc    Login user
-// @route   POST /api/auth/login
-// @access  Public
+/**
+ * Authenticates user with email/password
+ * Validates credentials, enforces role consistency, and returns JWT token
+ * @route POST /api/auth/login
+ */
 export const login = async (req: Request, res: Response): Promise<Response> => {
   try {
     const { email, password, role } = req.body as { email: string; password: string; role?: string };
@@ -314,9 +337,11 @@ export const login = async (req: Request, res: Response): Promise<Response> => {
   }
 };
 
-// @desc    Logout user
-// @route   POST /api/auth/logout
-// @access  Private
+/**
+ * Logs out the current user
+ * Note: JWT is stateless, so this just returns success (client must remove token)
+ * @route POST /api/auth/logout
+ */
 export const logout = (req: Request, res: Response): Response => {
   // JWT is stateless, so we just tell the client to remove the token
   return res.status(200).json({ message: 'Logged out successfully' });

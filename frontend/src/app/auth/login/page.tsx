@@ -6,6 +6,11 @@ import { useRouter } from 'next/navigation';
 import { Eye, EyeOff, Mail, Lock, User, Stethoscope, Shield, Building2 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
+/**
+ * Login page component
+ * Handles email/password and Google OAuth authentication
+ * Requires role parameter in URL query
+ */
 export default function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');

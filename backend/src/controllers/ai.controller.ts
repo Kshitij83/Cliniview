@@ -3,9 +3,12 @@ import Patient from '../models/patient.model';
 import SymptomCheck from '../models/symptomCheck.model';
 import axios from 'axios';
 
-// @desc    Check symptoms through ML service
-// @route   POST /api/ai/symptom-check
-// @access  Private
+/**
+ * Check symptoms using ML service
+ * Sends symptoms to ML API and returns analysis
+ * @route   POST /api/ai/symptom-check
+ * @access  Private
+ */
 export const checkSymptoms = async (req: Request, res: Response): Promise<Response> => {
   try {
     const { patientId, symptoms } = req.body;

@@ -3,7 +3,10 @@ import { IPatient } from './patient.model';
 import { IDoctor } from './doctor.model';
 import { IDocument } from './document.model';
 
-// DiagnosticNote interface - Simplified for minimal requirements
+/**
+ * Interface for DiagnosticNote document in MongoDB
+ * Represents a doctor's comment/note on a patient's medical document
+ */
 export interface IDiagnosticNote extends Document {
   patientId: mongoose.Types.ObjectId | IPatient;
   doctorId: mongoose.Types.ObjectId | IDoctor;
@@ -13,7 +16,9 @@ export interface IDiagnosticNote extends Document {
   updatedAt: Date;
 }
 
-// DiagnosticNote schema - Simplified to focus on doctor comments on documents
+/**
+ * Mongoose schema for DiagnosticNote collection
+ */
 const diagnosticNoteSchema = new Schema<IDiagnosticNote>(
   {
     patientId: {

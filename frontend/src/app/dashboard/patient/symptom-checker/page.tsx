@@ -17,6 +17,9 @@ import {
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
+/**
+ * Represents a symptom for checking
+ */
 interface Symptom {
   id: string;
   name: string;
@@ -24,6 +27,9 @@ interface Symptom {
   duration: string;
 }
 
+/**
+ * Represents the result of a symptom check
+ */
 interface SymptomCheckResult {
   id: string;
   symptoms: Symptom[];
@@ -34,6 +40,9 @@ interface SymptomCheckResult {
   createdAt: string;
 }
 
+/**
+ * List of common symptoms for quick selection
+ */
 const COMMON_SYMPTOMS = [
   'Headache', 'Fever', 'Cough', 'Sore throat', 'Nausea', 'Vomiting',
   'Diarrhea', 'Fatigue', 'Dizziness', 'Chest pain', 'Shortness of breath',
@@ -42,6 +51,10 @@ const COMMON_SYMPTOMS = [
   'Depression', 'Memory problems', 'Vision changes', 'Hearing problems'
 ];
 
+/**
+ * Symptom Checker page
+ * Allows patients to input symptoms and get AI-powered analysis
+ */
 export default function SymptomCheckerPage() {
   const [symptoms, setSymptoms] = useState<Symptom[]>([]);
   const [newSymptom, setNewSymptom] = useState('');

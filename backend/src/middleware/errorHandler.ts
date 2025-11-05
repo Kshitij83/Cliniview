@@ -1,12 +1,19 @@
 import { Request, Response, NextFunction } from 'express';
 import mongoose from 'mongoose';
 
+/**
+ * Extended Error interface with additional properties
+ */
 interface ExtendedError extends Error {
   statusCode?: number;
   code?: number;
   keyValue?: Record<string, any>;
 }
 
+/**
+ * Global error handler middleware
+ * Handles different types of errors and returns appropriate responses
+ */
 const errorHandler = (
   err: ExtendedError,
   req: Request,

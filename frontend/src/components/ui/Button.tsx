@@ -1,5 +1,8 @@
 import React from 'react';
 
+/**
+ * Button component props
+ */
 interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: 'primary' | 'secondary' | 'outline' | 'ghost' | 'danger';
   size?: 'sm' | 'md' | 'lg';
@@ -7,6 +10,10 @@ interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   children: React.ReactNode;
 }
 
+/**
+ * Reusable Button component with variants and sizes
+ * Supports loading state and all native button attributes
+ */
 export default function Button({
   variant = 'primary',
   size = 'md',
