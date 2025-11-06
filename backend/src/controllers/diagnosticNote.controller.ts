@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import DiagnosticNote from '../models/diagnosticNote.model';
 import Doctor from '../models/doctor.model';
 import Document from '../models/document.model';
+import Patient from '../models/patient.model';
 
 /**
  * Add a diagnostic note/comment to a document
@@ -75,12 +76,17 @@ export const getDocumentComments = async (req: Request, res: Response): Promise<
     
     // If patient, verify they own the document
     if (req.user?.role === 'patient') {
-      const patient = await Document.findOne({ 
-        _id: documentId,
-        patientId: req.user.id
-      });
+      // First get the patient ID from the user ID
+      const patient = await Patient.findOne({ user: req.user.id });
       
       if (!patient) {
+        return res.status(404).json({ 
+          message: 'Patient profile not found' 
+        });
+      }
+      
+      // Check if this patient owns the document
+      if (document.patientId.toString() !== patient.id) {
         return res.status(403).json({ 
           message: 'Not authorized to access these comments' 
         });

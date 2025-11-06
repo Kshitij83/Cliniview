@@ -8,6 +8,17 @@ import { IUser } from './user.model';
 export type DocumentType = 'medical_report' | 'other';
 
 /**
+ * Prescription interface for documents
+ */
+export interface IPrescription {
+  fileUrl: string;
+  fileName: string;
+  uploadedBy: mongoose.Types.ObjectId | IUser;
+  notes?: string;
+  uploadedAt: Date;
+}
+
+/**
  * Interface for Document document in MongoDB
  * Represents a medical document uploaded by a patient
  */
@@ -21,6 +32,7 @@ export interface IDocument extends MongoDocument {
   fileSize: number;
   mimeType: string;
   uploadedBy: mongoose.Types.ObjectId | IUser;
+  prescriptions: IPrescription[];
   createdAt: Date;
   updatedAt: Date;
 }
@@ -68,7 +80,29 @@ const documentSchema = new Schema<IDocument>(
       type: Schema.Types.ObjectId,
       ref: 'User',
       required: true,
-    }
+    },
+    prescriptions: [{
+      fileUrl: {
+        type: String,
+        required: true,
+      },
+      fileName: {
+        type: String,
+        required: true,
+      },
+      uploadedBy: {
+        type: Schema.Types.ObjectId,
+        ref: 'User',
+        required: true,
+      },
+      notes: {
+        type: String,
+      },
+      uploadedAt: {
+        type: Date,
+        default: Date.now,
+      }
+    }]
   },
   {
     timestamps: true,

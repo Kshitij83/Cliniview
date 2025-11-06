@@ -7,47 +7,37 @@ import Card from '@/components/ui/Card';
 import StatCard from '@/components/ui/StatCard';
 import Button from '@/components/ui/Button';
 import { setTokenInStorage } from '@/lib/auth';
+import { apiClient } from '@/lib/api';
+import toast from 'react-hot-toast';
 import { 
   Users, 
   FileText, 
   User,
-  Stethoscope,
   MessageCircle
 } from 'lucide-react';
 
 /**
  * Doctor dashboard page
- * Displays patients, documents, and quick actions for doctors
- */
-// Simplified types
-/**
- * Represents a patient in the doctor's view
- */
-interface Patient {
-  id: string;
-  name: string;
-  email: string;
-  dateOfBirth: string;
-  phone: string;
-}
-
-/**
- * Represents a medical document in the doctor's view
+ * Displays all patient medical records for review
  */
 interface Document {
-  id: string;
-  patientId: string;
+  _id: string;
+  patientId: {
+    _id: string;
+    user: {
+      name: string;
+      email: string;
+    };
+  };
   title: string;
   description: string;
   fileUrl: string;
   fileName: string;
   createdAt: string;
-  hasComments: boolean;
 }
 
 export default function DoctorDashboard() {
-  const [patients, setPatients] = useState<Patient[]>([]);
-  const [recentDocuments, setRecentDocuments] = useState<Document[]>([]);
+  const [documents, setDocuments] = useState<Document[]>([]);
   const [loading, setLoading] = useState(true);
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -64,53 +54,21 @@ export default function DoctorDashboard() {
       window.history.replaceState({}, '', newUrl);
     }
 
-    // Mock data - in real app, fetch from API
-    const mockPatients: Patient[] = [
-      {
-        id: '1',
-        name: 'John Doe',
-        email: 'john.doe@email.com',
-        dateOfBirth: '1985-03-15',
-        phone: '+1 (555) 123-4567',
-      },
-      {
-        id: '2',
-        name: 'Jane Smith',
-        email: 'jane.smith@email.com',
-        dateOfBirth: '1990-07-22',
-        phone: '+1 (555) 234-5678',
-      },
-    ];
-
-    const mockDocuments: Document[] = [
-      {
-        id: '1',
-        patientId: '1',
-        title: 'Blood Test Results',
-        description: 'Complete blood count and lipid panel',
-        fileUrl: '/documents/lab-report-1.pdf',
-        fileName: 'lab-report-1.pdf',
-        createdAt: new Date().toISOString(),
-        hasComments: true
-      },
-      {
-        id: '2',
-        patientId: '2',
-        title: 'X-Ray Report',
-        description: 'Chest X-ray showing mild pneumonia',
-        fileUrl: '/documents/xray.pdf',
-        fileName: 'xray.pdf',
-        createdAt: new Date(Date.now() - 86400000).toISOString(),
-        hasComments: false
-      },
-    ];
-
-    setTimeout(() => {
-      setPatients(mockPatients);
-      setRecentDocuments(mockDocuments);
-      setLoading(false);
-    }, 500);
+    fetchAllDocuments();
   }, []);
+
+  const fetchAllDocuments = async () => {
+    setLoading(true);
+    try {
+      const docs = await apiClient.getAllDocuments();
+      setDocuments(docs);
+    } catch (error) {
+      console.error('Error fetching documents:', error);
+      toast.error('Failed to load patient documents');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('en-US', {
@@ -120,17 +78,18 @@ export default function DoctorDashboard() {
     });
   };
 
-  const handleViewPatientRecords = (patientId: string) => {
-    router.push(`/dashboard/doctor/patients/${patientId}`);
-  };
-
   const handleViewDocument = (documentId: string) => {
     router.push(`/dashboard/doctor/documents/${documentId}`);
   };
 
-  const handleAddComments = (documentId: string) => {
-    router.push(`/dashboard/doctor/documents/${documentId}/comments`);
-  };
+  // Get unique patients from documents
+  const uniquePatients = Array.from(
+    new Map(
+      documents
+        .filter(doc => doc.patientId?.user)
+        .map(doc => [doc.patientId._id, doc.patientId])
+    ).values()
+  );
 
   if (loading) {
     return (
@@ -156,120 +115,57 @@ export default function DoctorDashboard() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <StatCard
             title="Total Patients"
-            value={patients.length}
+            value={uniquePatients.length}
             icon={Users}
             color="blue"
           />
           <StatCard
             title="Medical Documents"
-            value={recentDocuments.length}
+            value={documents.length}
             icon={FileText}
             color="green"
           />
         </div>
 
-        {/* My Patients */}
+        {/* All Patient Medical Records */}
         <Card
-          title="My Patients"
-          subtitle="Patients whose documents you can review"
+          title="Patient Medical Records"
+          subtitle="All medical documents uploaded by patients"
         >
           <div className="space-y-4">
-            {patients.map((patient) => (
-              <div key={patient.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+            {documents.map((doc) => (
+              <div key={doc._id} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
                 <div className="flex items-center space-x-3">
-                  <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
-                    <User className="w-5 h-5 text-blue-600" />
+                  <div className="p-2 bg-blue-100 rounded-lg">
+                    <FileText className="w-5 h-5 text-blue-600" />
                   </div>
                   <div>
-                    <h4 className="font-medium text-gray-900">{patient.name}</h4>
-                    <p className="text-sm text-gray-600">{patient.email}</p>
+                    <h4 className="font-medium text-gray-900">{doc.title}</h4>
+                    <p className="text-sm text-gray-600">{doc.description || 'No description'}</p>
                     <p className="text-xs text-gray-500">
-                      DOB: {formatDate(patient.dateOfBirth)} • Phone: {patient.phone}
+                      Patient: {doc.patientId?.user?.name || 'Unknown'} • Uploaded: {formatDate(doc.createdAt)}
                     </p>
                   </div>
                 </div>
-                <Button 
-                  variant="outline" 
-                  size="sm"
-                  onClick={() => handleViewPatientRecords(patient.id)}
-                >
-                  View Records
-                </Button>
+                <div className="flex items-center space-x-2">
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => handleViewDocument(doc._id)}
+                  >
+                    View & Add Comments
+                  </Button>
+                </div>
               </div>
             ))}
-          </div>
-        </Card>
-
-        {/* Recent Patient Documents */}
-        <Card
-          title="Recent Patient Documents"
-          subtitle="Medical reports uploaded by patients"
-        >
-          <div className="space-y-4">
-            {recentDocuments.map((doc) => {
-              const patient = patients.find(p => p.id === doc.patientId);
-              return (
-                <div key={doc.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
-                  <div className="flex items-center space-x-3">
-                    <div className="p-2 bg-blue-100 rounded-lg">
-                      <FileText className="w-5 h-5 text-blue-600" />
-                    </div>
-                    <div>
-                      <h4 className="font-medium text-gray-900 flex items-center">
-                        {doc.title}
-                        {doc.hasComments && (
-                          <span className="ml-2 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                            Commented
-                          </span>
-                        )}
-                      </h4>
-                      <p className="text-sm text-gray-600">{doc.description}</p>
-                      <p className="text-xs text-gray-500">
-                        Patient: {patient?.name} • Uploaded: {formatDate(doc.createdAt)}
-                      </p>
-                    </div>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <Button 
-                      variant="ghost" 
-                      size="sm"
-                      onClick={() => handleViewDocument(doc.id)}
-                    >
-                      View
-                    </Button>
-                    <Button 
-                      variant="outline" 
-                      size="sm"
-                      onClick={() => handleAddComments(doc.id)}
-                    >
-                      <MessageCircle className="w-4 h-4 mr-1" />
-                      {doc.hasComments ? 'Edit Comment' : 'Add Comment'}
-                    </Button>
-                  </div>
-                </div>
-              );
-            })}
             
-            {recentDocuments.length === 0 && (
-              <div className="text-center py-8">
-                <FileText className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                <p className="text-gray-500">No patient documents available</p>
+            {documents.length === 0 && (
+              <div className="text-center py-12">
+                <FileText className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+                <h3 className="text-lg font-medium text-gray-900 mb-2">No Patient Documents</h3>
+                <p className="text-gray-500">Patient medical records will appear here once uploaded</p>
               </div>
             )}
-          </div>
-        </Card>
-
-        {/* Quick Actions */}
-        <Card title="Quick Actions">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <Button variant="outline" className="h-20 flex-col">
-              <Users className="w-6 h-6 mb-2" />
-              View All Patients
-            </Button>
-            <Button variant="outline" className="h-20 flex-col">
-              <Stethoscope className="w-6 h-6 mb-2" />
-              Add Medical Comments
-            </Button>
           </div>
         </Card>
       </div>

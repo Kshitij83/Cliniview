@@ -317,7 +317,7 @@ export default function UploadPage() {
                               onChange={(e) => updateFileDetails(uploadedFile.id, { 
                                 title: e.target.value 
                               })}
-                              className="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                              className="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm text-gray-900 placeholder:text-gray-400"
                               placeholder="Enter document title"
                             />
                           </div>
@@ -332,7 +332,7 @@ export default function UploadPage() {
                                 description: e.target.value 
                               })}
                               rows={2}
-                              className="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                              className="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm text-gray-900 placeholder:text-gray-400"
                               placeholder="Enter document description"
                             />
                           </div>

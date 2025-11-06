@@ -16,7 +16,8 @@ export const getDocument = async (req: Request, res: Response): Promise<Response
     
     const document = await Document.findById(documentId)
       .populate('patientId', 'user')
-      .populate('uploadedBy', 'name role');
+      .populate('uploadedBy', 'name role')
+      .populate('prescriptions.uploadedBy', 'name role');
     
     if (!document) {
       return res.status(404).json({ message: 'Document not found' });
@@ -182,6 +183,81 @@ export const deleteDocument = async (req: Request, res: Response): Promise<Respo
     return res.status(200).json({ message: 'Document deleted successfully' });
   } catch (error) {
     console.error('Error deleting document:', error);
+    return res.status(500).json({ message: 'Server error' });
+  }
+};
+
+/**
+ * Get all documents from all patients (for doctors)
+ * @route   GET /api/documents/all
+ * @access  Private (Doctor only)
+ */
+export const getAllDocuments = async (req: Request, res: Response): Promise<Response> => {
+  try {
+    const documents = await Document.find()
+      .populate('patientId')
+      .populate('uploadedBy', 'name email')
+      .populate({
+        path: 'patientId',
+        populate: {
+          path: 'user',
+          select: 'name email'
+        }
+      })
+      .sort({ createdAt: -1 });
+    
+    return res.status(200).json(documents);
+  } catch (error) {
+    console.error('Error fetching all documents:', error);
+    return res.status(500).json({ message: 'Server error' });
+  }
+};
+
+/**
+ * Upload prescription for a document
+ * @route   POST /api/documents/:id/prescription
+ * @access  Private (Doctor only)
+ */
+export const uploadPrescription = async (req: Request, res: Response): Promise<Response> => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ message: 'Please upload a file' });
+    }
+
+    const documentId = req.params.id;
+    const { notes } = req.body;
+
+    const document = await Document.findById(documentId);
+    
+    if (!document) {
+      return res.status(404).json({ message: 'Document not found' });
+    }
+
+    // Add prescription to document
+    document.prescriptions.push({
+      fileUrl: `/uploads/${req.file.filename}`,
+      fileName: req.file.originalname,
+      uploadedBy: req.user!.id as any,
+      notes: notes || '',
+      uploadedAt: new Date()
+    });
+
+    await document.save();
+
+    return res.status(200).json({
+      success: true,
+      message: 'Prescription uploaded successfully',
+      data: document
+    });
+
+  } catch (error) {
+    console.error('Error uploading prescription:', error);
+    
+    // Delete file if there was an error
+    if (req.file) {
+      fs.unlinkSync(req.file.path);
+    }
+    
     return res.status(500).json({ message: 'Server error' });
   }
 };

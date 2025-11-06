@@ -13,7 +13,7 @@ router.use(authenticate);
 // Add a comment to a document - doctors only
 router.post('/', authorize('doctor'), addComment);
 
-// Get all comments for a document
-router.get('/document/:documentId', authenticate, getDocumentComments);
+// Get all comments for a document - accessible to both doctors and patients
+router.get('/document/:documentId', getDocumentComments);
 
 export default router;

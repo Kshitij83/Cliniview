@@ -23,6 +23,8 @@ import { apiClient } from '@/lib/api';
  * Displays a specific medical document with diagnostic notes from doctors
  */
 
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
+
 /**
  * Represents a diagnostic note on a patient's document
  */
@@ -38,8 +40,19 @@ interface DiagnosticNote {
   updatedAt: string;
 }
 
+interface Prescription {
+  fileUrl: string;
+  fileName: string;
+  notes: string;
+  uploadedAt: string;
+  uploadedBy: {
+    name: string;
+  };
+}
+
 interface Document {
-  id: string;
+  _id?: string;
+  id?: string;
   patientId: string;
   title: string;
   description: string;
@@ -48,6 +61,7 @@ interface Document {
   fileType: string;
   createdAt: string;
   updatedAt: string;
+  prescriptions?: Prescription[];
 }
 
 export default function PatientDocumentViewPage() {
@@ -67,27 +81,14 @@ export default function PatientDocumentViewPage() {
       try {
         // Fetch document details using dedicated endpoint
         const response = await apiClient.getDocument(documentId);
-        const doc = response.document;
+        const doc = response.document || response;
         
         if (doc) {
-          setDocument({
-            id: doc._id || doc.id,
-            patientId: doc.patientId,
-            title: doc.title,
-            description: doc.description || '',
-            fileUrl: doc.fileUrl,
-            fileName: doc.fileName,
-            fileType: doc.mimeType || doc.fileType,
-            createdAt: doc.createdAt,
-            updatedAt: doc.updatedAt,
-          });
-          
-          // Set viewer URL - use backend URL
-          const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
+          setDocument(doc);
           setViewerUrl(API_BASE.replace('/api', '') + doc.fileUrl);
         }
         
-        // Fetch diagnostic notes (returned with document but also fetch separately)
+        // Fetch diagnostic notes
         try {
           const notes = await apiClient.getDiagnosticNotes(documentId);
           setDiagnosticNotes(notes);
@@ -210,15 +211,15 @@ export default function PatientDocumentViewPage() {
         
         {/* Document Preview */}
         <Card title="Document Preview">
-          <div className="bg-gray-100 rounded-lg border border-gray-300 p-4 h-[720px] flex items-center justify-center">
+          <div className="bg-gray-100 rounded-lg border border-gray-300 overflow-hidden">
             {viewerUrl ? (
               <iframe
                 src={viewerUrl}
-                className="w-full h-full"
+                className="w-full h-[600px]"
                 title={document.title}
               />
             ) : (
-              <div className="text-center">
+              <div className="text-center py-12">
                 <FileText className="w-16 h-16 text-gray-400 mx-auto mb-4" />
                 <p className="text-gray-700 mb-2">Document Preview Not Available</p>
                 <p className="text-sm text-gray-500">
@@ -228,6 +229,45 @@ export default function PatientDocumentViewPage() {
             )}
           </div>
         </Card>
+
+        {/* Prescriptions from Doctors */}
+        {document.prescriptions && document.prescriptions.length > 0 && (
+          <Card title="Prescriptions" subtitle="Prescriptions from your healthcare provider">
+            <div className="space-y-4">
+              {document.prescriptions.map((prescription, index) => (
+                <div key={index} className="p-4 bg-green-50 rounded-lg border border-green-200">
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1">
+                      <div className="flex items-center space-x-2 mb-2">
+                        <FileText className="w-5 h-5 text-green-600" />
+                        <h4 className="font-medium text-gray-900">{prescription.fileName}</h4>
+                      </div>
+                      {prescription.notes && (
+                        <p className="text-sm text-gray-700 mb-2">{prescription.notes}</p>
+                      )}
+                      <p className="text-xs text-gray-500">
+                        Prescribed by {prescription.uploadedBy?.name || 'Doctor'} on {formatDate(prescription.uploadedAt)}
+                      </p>
+                    </div>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        const link = window.document.createElement('a');
+                        link.href = API_BASE.replace('/api', '') + prescription.fileUrl;
+                        link.download = prescription.fileName;
+                        link.click();
+                      }}
+                    >
+                      <Download className="w-4 h-4 mr-1" />
+                      Download
+                    </Button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </Card>
+        )}
         
         {/* Doctor's Comments */}
         <Card 
@@ -252,31 +292,37 @@ export default function PatientDocumentViewPage() {
                   </div>
                   
                   {/* Note Content */}
-                  <div className="bg-gray-50 rounded-lg p-4 text-gray-700 leading-relaxed">
-                    <p>{note.content}</p>
-                  </div>
+                  {note.content && (
+                    <div className="bg-gray-50 rounded-lg p-4 text-gray-700 leading-relaxed">
+                      <p>{note.content}</p>
+                    </div>
+                  )}
                   
                   {/* Findings */}
-                  <div>
-                    <h5 className="text-sm font-medium text-gray-700 mb-2 flex items-center">
-                      <AlertTriangle className="w-4 h-4 mr-1 text-amber-500" />
-                      Findings
-                    </h5>
-                    <div className="bg-amber-50 rounded-lg p-3 text-gray-700">
-                      <pre className="whitespace-pre-wrap text-sm font-normal">{note.findings}</pre>
+                  {note.findings && (
+                    <div>
+                      <h5 className="text-sm font-medium text-gray-700 mb-2 flex items-center">
+                        <AlertTriangle className="w-4 h-4 mr-1 text-amber-500" />
+                        Findings
+                      </h5>
+                      <div className="bg-amber-50 rounded-lg p-3 text-gray-700">
+                        <pre className="whitespace-pre-wrap text-sm font-sans">{note.findings}</pre>
+                      </div>
                     </div>
-                  </div>
+                  )}
                   
                   {/* Recommendations */}
-                  <div>
-                    <h5 className="text-sm font-medium text-gray-700 mb-2 flex items-center">
-                      <CheckSquare className="w-4 h-4 mr-1 text-green-500" />
-                      Recommendations
-                    </h5>
-                    <div className="bg-green-50 rounded-lg p-3 text-gray-700">
-                      <pre className="whitespace-pre-wrap text-sm font-normal">{note.recommendations}</pre>
+                  {note.recommendations && (
+                    <div>
+                      <h5 className="text-sm font-medium text-gray-700 mb-2 flex items-center">
+                        <CheckSquare className="w-4 h-4 mr-1 text-green-500" />
+                        Recommendations
+                      </h5>
+                      <div className="bg-green-50 rounded-lg p-3 text-gray-700">
+                        <pre className="whitespace-pre-wrap text-sm font-sans">{note.recommendations}</pre>
+                      </div>
                     </div>
-                  </div>
+                  )}
                 </div>
               ))}
             </div>

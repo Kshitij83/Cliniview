@@ -44,11 +44,66 @@ interface SymptomCheckResult {
  * List of common symptoms for quick selection
  */
 const COMMON_SYMPTOMS = [
-  'Headache', 'Fever', 'Cough', 'Sore throat', 'Nausea', 'Vomiting',
-  'Diarrhea', 'Fatigue', 'Dizziness', 'Chest pain', 'Shortness of breath',
-  'Abdominal pain', 'Back pain', 'Joint pain', 'Rash', 'Itching',
-  'Swelling', 'Weight loss', 'Weight gain', 'Insomnia', 'Anxiety',
-  'Depression', 'Memory problems', 'Vision changes', 'Hearing problems'
+  // General Symptoms
+  'Headache', 'Fever', 'Chills', 'Fatigue', 'Weakness', 'Dizziness', 
+  'Lightheadedness', 'Fainting', 'Sweating', 'Night sweats', 'Malaise',
+  'Loss of appetite', 'Weight loss', 'Weight gain', 'Dehydration',
+  
+  // Respiratory Symptoms
+  'Cough', 'Dry cough', 'Productive cough', 'Sore throat', 'Runny nose',
+  'Stuffy nose', 'Nasal congestion', 'Sneezing', 'Shortness of breath',
+  'Difficulty breathing', 'Wheezing', 'Chest tightness', 'Rapid breathing',
+  'Hoarse voice', 'Loss of voice', 'Postnasal drip',
+  
+  // Digestive Symptoms
+  'Nausea', 'Vomiting', 'Diarrhea', 'Constipation', 'Abdominal pain',
+  'Stomach cramps', 'Bloating', 'Gas', 'Heartburn', 'Acid reflux',
+  'Loss of taste', 'Loss of smell', 'Difficulty swallowing', 'Indigestion',
+  'Blood in stool', 'Black stool', 'Loss of bowel control',
+  
+  // Pain & Musculoskeletal
+  'Chest pain', 'Back pain', 'Lower back pain', 'Neck pain', 'Shoulder pain',
+  'Joint pain', 'Muscle pain', 'Muscle aches', 'Muscle cramps', 'Stiffness',
+  'Knee pain', 'Hip pain', 'Leg pain', 'Arm pain', 'Numbness', 'Tingling',
+  
+  // Skin Symptoms
+  'Rash', 'Itching', 'Hives', 'Swelling', 'Redness', 'Blisters', 
+  'Dry skin', 'Peeling skin', 'Bruising', 'Skin discoloration',
+  'Acne', 'Bumps', 'Lesions', 'Sores', 'Ulcers',
+  
+  // Neurological Symptoms
+  'Confusion', 'Memory problems', 'Difficulty concentrating', 'Brain fog',
+  'Tremors', 'Seizures', 'Coordination problems', 'Balance problems',
+  'Slurred speech', 'Vision changes', 'Blurred vision', 'Double vision',
+  'Sensitivity to light', 'Hearing problems', 'Ringing in ears', 'Ear pain',
+  
+  // Mental Health
+  'Anxiety', 'Depression', 'Mood swings', 'Irritability', 'Stress',
+  'Panic attacks', 'Restlessness', 'Nervousness', 'Insomnia',
+  'Difficulty sleeping', 'Excessive sleeping', 'Nightmares',
+  
+  // Cardiovascular
+  'Palpitations', 'Irregular heartbeat', 'Rapid heartbeat', 'Slow heartbeat',
+  'High blood pressure', 'Low blood pressure', 'Poor circulation',
+  'Cold hands and feet', 'Leg swelling', 'Ankle swelling',
+  
+  // Urinary Symptoms
+  'Frequent urination', 'Urgent urination', 'Painful urination',
+  'Blood in urine', 'Dark urine', 'Cloudy urine', 'Difficulty urinating',
+  'Incontinence', 'Reduced urine output',
+  
+  // Eye Symptoms
+  'Red eyes', 'Itchy eyes', 'Watery eyes', 'Dry eyes', 'Eye pain',
+  'Eye discharge', 'Swollen eyelids', 'Eye twitching',
+  
+  // Throat & Mouth
+  'Dry mouth', 'Bad breath', 'Tooth pain', 'Gum bleeding', 'Mouth sores',
+  'Tongue pain', 'Swollen glands', 'Difficulty chewing',
+  
+  // Other
+  'Hair loss', 'Excessive thirst', 'Excessive hunger', 'Frequent infections',
+  'Delayed wound healing', 'Easy bruising', 'Nosebleeds', 'Bleeding gums',
+  'Menstrual irregularities', 'Hot flashes', 'Cold intolerance', 'Heat intolerance'
 ];
 
 /**
@@ -187,17 +242,17 @@ export default function SymptomCheckerPage() {
                   }}
                   onFocus={() => setShowSymptomSuggestions(newSymptom.length > 0)}
                   placeholder="Type a symptom..."
-                  className="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                  className="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm text-gray-900 placeholder:text-gray-400"
                 />
                 
                 {/* Symptom Suggestions */}
                 {showSymptomSuggestions && filteredSymptoms.length > 0 && (
                   <div className="absolute z-10 mt-1 w-full bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-auto">
-                    {filteredSymptoms.slice(0, 10).map((symptom) => (
+                    {filteredSymptoms.slice(0, 15).map((symptom) => (
                       <button
                         key={symptom}
                         onClick={() => addSymptom(symptom)}
-                        className="w-full text-left px-4 py-2 hover:bg-gray-100 text-sm"
+                        className="w-full text-left px-4 py-2 hover:bg-gray-100 text-sm text-gray-900"
                       >
                         {symptom}
                       </button>
@@ -236,7 +291,7 @@ export default function SymptomCheckerPage() {
                               onChange={(e) => updateSymptom(symptom.id, { 
                                 severity: e.target.value as any 
                               })}
-                              className="ml-1 text-sm border-gray-300 rounded focus:border-indigo-500 focus:ring-indigo-500"
+                              className="ml-1 text-sm border-gray-300 rounded focus:border-indigo-500 focus:ring-indigo-500 text-gray-900"
                             >
                               <option value="mild">Mild</option>
                               <option value="moderate">Moderate</option>
@@ -250,7 +305,7 @@ export default function SymptomCheckerPage() {
                               onChange={(e) => updateSymptom(symptom.id, { 
                                 duration: e.target.value 
                               })}
-                              className="ml-1 text-sm border-gray-300 rounded focus:border-indigo-500 focus:ring-indigo-500"
+                              className="ml-1 text-sm border-gray-300 rounded focus:border-indigo-500 focus:ring-indigo-500 text-gray-900"
                             >
                               <option value="1 day">1 day</option>
                               <option value="2-3 days">2-3 days</option>

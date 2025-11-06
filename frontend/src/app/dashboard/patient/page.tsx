@@ -13,7 +13,8 @@ import {
   Brain, 
   Bell, 
   CheckCircle,
-  AlertCircle
+  AlertCircle,
+  MessageSquare
 } from 'lucide-react';
 
 // Simplified types
@@ -26,6 +27,7 @@ interface Document {
   fileSize: number;
   createdAt: string;
   hasDoctorComments: boolean;
+  hasPrescriptions: boolean;
 }
 
 export default function PatientDashboard() {
@@ -53,19 +55,38 @@ export default function PatientDashboard() {
         const { apiClient } = await import('@/lib/api');
         const docs = await apiClient.getMyDocuments();
         
-        // Map to expected shape
-        const mappedDocs: Document[] = docs.map((doc: any) => ({
-          id: doc._id || doc.id,
-          title: doc.title,
-          description: doc.description || '',
-          fileUrl: doc.fileUrl,
-          fileName: doc.fileName,
-          fileSize: doc.fileSize,
-          createdAt: doc.createdAt,
-          hasDoctorComments: false, // Could check diagnosticNotes if needed
-        }));
+        // Fetch diagnostic notes for each document to check if they have comments
+        const docsWithComments = await Promise.all(
+          docs.map(async (doc: any) => {
+            let hasDoctorComments = false;
+            let hasPrescriptions = false;
+            
+            try {
+              // Check for diagnostic notes
+              const notes = await apiClient.getDiagnosticNotes(doc._id || doc.id);
+              hasDoctorComments = notes && notes.length > 0;
+            } catch (error) {
+              console.log('No comments for document:', doc._id || doc.id);
+            }
+            
+            // Check for prescriptions (embedded in document)
+            hasPrescriptions = doc.prescriptions && doc.prescriptions.length > 0;
+            
+            return {
+              id: doc._id || doc.id,
+              title: doc.title,
+              description: doc.description || '',
+              fileUrl: doc.fileUrl,
+              fileName: doc.fileName,
+              fileSize: doc.fileSize,
+              createdAt: doc.createdAt,
+              hasDoctorComments,
+              hasPrescriptions,
+            };
+          })
+        );
         
-        setDocuments(mappedDocs);
+        setDocuments(docsWithComments);
       } catch (error) {
         console.error('Failed to fetch documents:', error);
         // Fallback to empty on error
@@ -135,10 +156,10 @@ export default function PatientDashboard() {
             color="blue"
           />
           <StatCard
-            title="Documents with Comments"
-            value={documents.filter(d => d.hasDoctorComments).length}
-            icon={Bell}
-            color="purple"
+            title="Documents Reviewed"
+            value={documents.filter(d => d.hasDoctorComments || d.hasPrescriptions).length}
+            icon={CheckCircle}
+            color="green"
           />
         </div>
 
@@ -162,12 +183,18 @@ export default function PatientDashboard() {
                       <FileText className="w-5 h-5 text-blue-600" />
                     </div>
                     <div>
-                      <h4 className="font-medium text-gray-900 flex items-center">
+                      <h4 className="font-medium text-gray-900 flex items-center flex-wrap gap-2">
                         {doc.title}
                         {doc.hasDoctorComments && (
-                          <span className="ml-2 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                            <MessageSquare className="w-3 h-3 mr-1" />
+                            Comments
+                          </span>
+                        )}
+                        {doc.hasPrescriptions && (
+                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
                             <CheckCircle className="w-3 h-3 mr-1" />
-                            Has Comments
+                            Prescription
                           </span>
                         )}
                       </h4>

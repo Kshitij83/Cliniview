@@ -53,9 +53,6 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
       case 'doctor':
         return [
           { name: 'Dashboard', href: '/dashboard/doctor', icon: Home },
-          { name: 'My Patients', href: '/dashboard/doctor/patients', icon: Users },
-          { name: 'AI Summaries', href: '/dashboard/doctor/ai-summaries', icon: Brain },
-          { name: 'Diagnostic Notes', href: '/dashboard/doctor/notes', icon: ClipboardList },
         ];
 
       case 'admin':
