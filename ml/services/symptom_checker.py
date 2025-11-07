@@ -1,53 +1,232 @@
 import os
-from typing import List, Dict, Optional
-import numpy as np
 import json
-from utils.model_loader import load_symptom_model
+import csv
+from typing import List, Dict, Tuple
+from collections import Counter
+import math
 
 class SymptomChecker:
+    """
+    AI-based Symptom Checker using symptom severity weights and disease mapping.
+    Implements algorithm inspired by open-source disease predictors.
+    """
+    
     def __init__(self):
-        """Initialize the symptom checker with pre-trained models."""
-        self.model = load_symptom_model()
-        # Load symptom-disease mappings
-        with open(os.path.join("data", "symptom_mapping.json"), "r") as f:
-            self.symptom_map = json.load(f)
+        """Initialize the symptom checker with symptom severity and disease mappings."""
+        self.symptom_weights = self._load_symptom_weights()
+        self.disease_data = self._load_disease_mapping()
+        self.all_symptoms = set(self.symptom_weights.keys())
         
-        # Initialize severity levels and recommendations
-        self.severity_thresholds = {
-            "high": 0.7,
-            "medium": 0.4,
-            "low": 0.0
-        }
+    def _load_symptom_weights(self) -> Dict[str, float]:
+        """Load symptom severity weights from CSV file."""
+        weights = {}
+        csv_path = os.path.join(os.path.dirname(__file__), "..", "data", "symptom_severity.csv")
         
-    def analyze(
+        try:
+            with open(csv_path, 'r') as file:
+                reader = csv.DictReader(file)
+                for row in reader:
+                    symptom = row['Symptom'].strip().lower().replace(' ', '_')
+                    weight = float(row['weight'])
+                    weights[symptom] = weight
+        except FileNotFoundError:
+            print(f"Warning: {csv_path} not found. Using default weights.")
+            return {}
+            
+        return weights
+    
+    def _load_disease_mapping(self) -> List[Dict]:
+        """Load disease-symptom mappings from JSON file."""
+        json_path = os.path.join(os.path.dirname(__file__), "..", "data", "symptom_disease_mapping.json")
+        
+        try:
+            with open(json_path, 'r') as file:
+                data = json.load(file)
+                return data.get('diseases', [])
+        except FileNotFoundError:
+            print(f"Warning: {json_path} not found. Using empty disease list.")
+            return []
+    
+    def _normalize_symptom(self, symptom: str) -> str:
+        """Normalize symptom name to match dataset format."""
+        return symptom.strip().lower().replace(' ', '_').replace('-', '_')
+    
+    def _calculate_symptom_score(self, symptoms: List[str]) -> float:
+        """Calculate total severity score for given symptoms."""
+        total_score = 0.0
+        for symptom in symptoms:
+            normalized = self._normalize_symptom(symptom)
+            weight = self.symptom_weights.get(normalized, 2.0)  # Default weight: 2.0
+            total_score += weight
+        return total_score
+    
+    def _calculate_match_probability(
         self, 
-        symptoms: List[str],
-        age: Optional[int] = None,
-        gender: Optional[str] = None,
-        medical_history: Optional[List[str]] = None
-    ) -> Dict:
+        user_symptoms: List[str], 
+        disease_symptoms: List[str]
+    ) -> float:
         """
-        Analyze symptoms and return possible conditions.
+        Calculate probability of disease based on symptom matching.
+        Uses Jaccard similarity with severity weighting.
+        """
+        user_set = set([self._normalize_symptom(s) for s in user_symptoms])
+        disease_set = set([self._normalize_symptom(s) for s in disease_symptoms])
+        
+        # Calculate intersection (matching symptoms)
+        intersection = user_set.intersection(disease_set)
+        
+        if not intersection:
+            return 0.0
+        
+        # Weight by severity
+        match_score = sum([self.symptom_weights.get(s, 2.0) for s in intersection])
+        disease_total_score = sum([self.symptom_weights.get(s, 2.0) for s in disease_set])
+        user_total_score = sum([self.symptom_weights.get(s, 2.0) for s in user_set])
+        
+        # Normalize using weighted Jaccard index
+        if user_total_score + disease_total_score == 0:
+            return 0.0
+            
+        probability = (2 * match_score) / (user_total_score + disease_total_score)
+        
+        # Boost if user has many disease symptoms
+        coverage_bonus = len(intersection) / len(disease_set) if disease_set else 0
+        probability = (probability * 0.7) + (coverage_bonus * 0.3)
+        
+        return min(probability, 1.0)
+    
+    def predict_diseases(self, symptoms: List[str], top_n: int = 5) -> List[Dict]:
+        """
+        Predict possible diseases based on input symptoms.
+        
+        Args:
+            symptoms: List of user-reported symptoms
+            top_n: Number of top predictions to return
+            
+        Returns:
+            List of disease predictions with confidence scores
+        """
+        if not symptoms:
+            return []
+        
+        predictions = []
+        
+        for disease in self.disease_data:
+            probability = self._calculate_match_probability(symptoms, disease['symptoms'])
+            
+            if probability > 0.05:  # Threshold to filter out very low matches
+                predictions.append({
+                    'disease': disease['name'],
+                    'confidence': round(probability, 3),
+                    'severity': disease['severity'],
+                    'recommendations': disease['recommendations'],
+                    'matching_symptoms': len(set([self._normalize_symptom(s) for s in symptoms]).intersection(
+                        set([self._normalize_symptom(s) for s in disease['symptoms']])
+                    ))
+                })
+        
+        # Sort by confidence (descending)
+        predictions.sort(key=lambda x: x['confidence'], reverse=True)
+        
+        return predictions[:top_n]
+    
+    def analyze(self, symptoms: List[str]) -> Dict:
+        """
+        Comprehensive symptom analysis.
         
         Args:
             symptoms: List of reported symptoms
-            age: Patient age (optional)
-            gender: Patient gender (optional)
-            medical_history: List of pre-existing conditions (optional)
             
         Returns:
-            Dictionary with possible conditions, recommendations, severity, and explanation
+            Dictionary with predictions, overall severity, and recommendations
         """
-        # In a real implementation, we would:
-        # 1. Preprocess symptoms
-        # 2. Run them through a trained model
-        # 3. Return predictions with confidence scores
+        if not symptoms:
+            return {
+                'predictions': [],
+                'overall_severity': 'unknown',
+                'severity_score': 0,
+                'recommendation_summary': ['Please enter at least one symptom for analysis'],
+                'total_symptoms': 0
+            }
         
-        # Mock implementation for demonstration
-        possible_conditions = self._mock_condition_prediction(symptoms, medical_history)
+        # Get disease predictions
+        predictions = self.predict_diseases(symptoms, top_n=5)
         
-        # Determine severity based on highest probability condition
-        max_prob = max([c["probability"] for c in possible_conditions])
+        # Calculate overall severity
+        severity_score = self._calculate_symptom_score(symptoms)
+        
+        # Determine overall severity level
+        if severity_score >= 30 or any(p['severity'] == 'high' and p['confidence'] > 0.6 for p in predictions):
+            overall_severity = 'high'
+        elif severity_score >= 15 or any(p['severity'] == 'medium' and p['confidence'] > 0.5 for p in predictions):
+            overall_severity = 'medium'
+        else:
+            overall_severity = 'low'
+        
+        # Generate general recommendations
+        recommendation_summary = self._generate_general_recommendations(
+            overall_severity, 
+            len(symptoms),
+            predictions
+        )
+        
+        # Create AI response summary
+        if predictions:
+            top_disease = predictions[0]['disease']
+            confidence = predictions[0]['confidence']
+            ai_response = (
+                f"Based on your {len(symptoms)} symptom(s), the most likely condition is "
+                f"{top_disease} with {confidence*100:.1f}% confidence. "
+                f"This assessment is based on symptom pattern matching and severity analysis."
+            )
+        else:
+            ai_response = (
+                f"Unable to determine a specific condition from the provided symptoms. "
+                f"Please consult a healthcare professional for proper diagnosis."
+            )
+        
+        return {
+            'predictions': predictions,
+            'overall_severity': overall_severity,
+            'severity_score': round(severity_score, 2),
+            'recommendation_summary': recommendation_summary,
+            'total_symptoms': len(symptoms),
+            'ai_response': ai_response
+        }
+    
+    def _generate_general_recommendations(
+        self, 
+        severity: str, 
+        symptom_count: int,
+        predictions: List[Dict]
+    ) -> List[str]:
+        """Generate general health recommendations based on analysis."""
+        recommendations = []
+        
+        if severity == 'high':
+            recommendations.append('⚠️ Seek immediate medical attention - your symptoms may require urgent care')
+            recommendations.append('Do not delay consulting a healthcare professional')
+        elif severity == 'medium':
+            recommendations.append('Schedule an appointment with your doctor within 24-48 hours')
+            recommendations.append('Monitor your symptoms closely for any changes')
+        else:
+            recommendations.append('Monitor your symptoms for the next 24-48 hours')
+            recommendations.append('Consider self-care measures and over-the-counter remedies if appropriate')
+        
+        # Add common general advice
+        recommendations.extend([
+            'Stay well hydrated by drinking plenty of water',
+            'Get adequate rest and sleep',
+            'Avoid self-medication without professional guidance',
+            'Keep a record of your symptoms and any changes'
+        ])
+        
+        # Add specific advice from top prediction if available
+        if predictions and predictions[0]['confidence'] > 0.5:
+            top_recs = predictions[0]['recommendations'][:2]  # First 2 specific recommendations
+            recommendations.extend(top_recs)
+        
+        return recommendations[:8]  # Limit to 8 recommendations
         severity = "high" if max_prob >= self.severity_thresholds["high"] else \
                   "medium" if max_prob >= self.severity_thresholds["medium"] else "low"
         

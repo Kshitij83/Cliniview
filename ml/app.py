@@ -1,8 +1,8 @@
-from fastapi import FastAPI, Depends, HTTPException, Security
+from fastapi import FastAPI, HTTPException, Security
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security.api_key import APIKeyHeader, APIKey
-from pydantic import BaseModel
-from typing import Optional, List
+from dataclasses import dataclass, asdict
+from typing import Optional, List, Dict, Any
 import uvicorn
 import os
 from dotenv import load_dotenv
@@ -28,7 +28,7 @@ app = FastAPI(
 # Add CORS middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # In production, specify allowed origins
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -45,40 +45,54 @@ async def get_api_key(api_key: str = Security(api_key_header)):
         status_code=403, detail="Invalid API Key"
     )
 
-# Models
-class SymptomRequest(BaseModel):
-    patient_id: str
-    symptoms: List[str]
-    age: Optional[int] = None
-    gender: Optional[str] = None
-    medical_history: Optional[List[str]] = None
-
-class ConditionPrediction(BaseModel):
-    name: str
-    probability: float
-    description: str
-
-class SymptomResponse(BaseModel):
-    possible_conditions: List[ConditionPrediction]
-    recommendations: List[str]
-    severity: str
-    explanation: str
-
 # Routes
 @app.get("/")
 async def root():
     return {"message": "Cliniview ML API is running"}
 
-@app.post("/api/symptom-check", response_model=SymptomResponse)
-async def analyze_symptoms(request: SymptomRequest, api_key: APIKey = Depends(get_api_key)):
+@app.get("/health")
+async def health_check():
+    return {"status": "healthy", "service": "cliniview-ml"}
+
+@app.post("/predict_symptom")
+async def predict_symptoms(request: Dict[str, Any]):
+    """
+    Predict possible diseases from symptoms.
+    Expects: {"symptoms": ["fever", "cough", "headache"]}
+    """
     try:
-        result = symptom_checker.analyze(
-            request.symptoms,
-            age=request.age,
-            gender=request.gender,
-            medical_history=request.medical_history
-        )
+        symptoms = request.get("symptoms", [])
+        if not symptoms:
+            raise HTTPException(status_code=400, detail="At least one symptom is required")
+        
+        result = symptom_checker.analyze(symptoms)
         return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error analyzing symptoms: {str(e)}")
+
+@app.post("/api/symptom-check")
+async def analyze_symptoms(request: Dict[str, Any], api_key: APIKey = Security(get_api_key)):
+    """Legacy endpoint for backward compatibility."""
+    try:
+        symptoms = request.get("symptoms", [])
+        result = symptom_checker.analyze(symptoms)
+        
+        # Convert to legacy format
+        conditions = [
+            {
+                "name": pred['disease'],
+                "probability": pred['confidence'],
+                "description": f"Severity: {pred['severity']}"
+            }
+            for pred in result['predictions'][:3]
+        ]
+        
+        return {
+            "possible_conditions": conditions,
+            "recommendations": result['recommendation_summary'],
+            "severity": result['overall_severity'],
+            "explanation": result['ai_response']
+        }
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error analyzing symptoms: {str(e)}")
 

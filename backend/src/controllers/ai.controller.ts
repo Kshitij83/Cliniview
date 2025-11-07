@@ -7,63 +7,100 @@ import axios from 'axios';
  * Check symptoms using ML service
  * Sends symptoms to ML API and returns analysis
  * @route   POST /api/ai/symptom-check
- * @access  Private
+ * @access  Private (Patient)
  */
 export const checkSymptoms = async (req: Request, res: Response): Promise<Response> => {
   try {
-    const { patientId, symptoms } = req.body;
+    const { symptoms } = req.body;
     
-    if (!patientId || !symptoms || !Array.isArray(symptoms) || symptoms.length === 0) {
+    if (!symptoms || !Array.isArray(symptoms) || symptoms.length === 0) {
       return res.status(400).json({ 
-        message: 'Patient ID and symptoms array are required' 
+        message: 'Symptoms array is required and must not be empty' 
       });
     }
     
-    // Verify patient exists
-    const patient = await Patient.findById(patientId);
+    // Get patient from authenticated user
+    const patient = await Patient.findOne({ user: req.user!.id });
     if (!patient) {
-      return res.status(404).json({ message: 'Patient not found' });
+      return res.status(404).json({ message: 'Patient profile not found' });
     }
     
-    // Call ML service (this would be an actual API call in production)
+    // Call ML service
     try {
-      // Example API call to the ML service
-      const mlResponse = await axios.post(`${process.env.ML_SERVICE_URL}/api/symptom-check`, {
-        patient_id: patientId,
+      const mlServiceUrl = process.env.ML_SERVICE_URL || 'http://localhost:5001';
+      console.log('🔍 DEBUG: ML Service URL:', mlServiceUrl);
+      console.log('🔍 DEBUG: Calling endpoint:', `${mlServiceUrl}/predict_symptom`);
+      console.log('🔍 DEBUG: Request payload:', { symptoms });
+      
+      const mlResponse = await axios.post(`${mlServiceUrl}/predict_symptom`, {
         symptoms
       }, {
-        headers: {
-          'X-API-Key': process.env.ML_API_KEY || 'test-key'
-        }
+        timeout: 10000
       });
       
-      const { 
-        explanation,
-        possible_conditions,
-        severity, 
-        recommendations
+      console.log('✅ DEBUG: ML Response received, status:', mlResponse.status);
+      console.log('✅ DEBUG: ML Response data:', JSON.stringify(mlResponse.data, null, 2));
+      
+      const {
+        predictions,
+        overall_severity,
+        severity_score,
+        recommendation_summary,
+        total_symptoms,
+        ai_response
       } = mlResponse.data;
+      
+      console.log('🔍 DEBUG: Extracted predictions count:', predictions?.length);
+      
+      // Transform predictions to match database schema
+      const possibleConditions = predictions.map((pred: any) => ({
+        name: pred.disease,
+        probability: pred.confidence,
+        description: `Severity: ${pred.severity} | Matching symptoms: ${pred.matching_symptoms}`
+      }));
+      
+      console.log('🔍 DEBUG: Transformed possibleConditions:', possibleConditions.length);
       
       // Save results to database
       const symptomCheck = new SymptomCheck({
-        patientId,
+        patientId: patient.id,
         symptoms,
-        aiResponse: explanation,
-        possibleConditions: possible_conditions,
-        severity,
-        recommendations,
+        aiResponse: ai_response,
+        possibleConditions,
+        severity: overall_severity,
+        recommendations: recommendation_summary,
         modelVersion: '1.0'
       });
       
+      console.log('🔍 DEBUG: About to save to database...');
       await symptomCheck.save();
+      console.log('✅ DEBUG: Saved to database successfully');
       
-      return res.status(200).json(symptomCheck);
-    } catch (apiError) {
-      console.error('ML API error:', apiError);
+      return res.status(200).json({
+        success: true,
+        data: {
+          id: symptomCheck.id,
+          symptoms,
+          predictions,
+          overallSeverity: overall_severity,
+          severityScore: severity_score,
+          recommendations: recommendation_summary,
+          aiResponse: ai_response,
+          createdAt: symptomCheck.createdAt
+        }
+      });
+    } catch (apiError: any) {
+      console.error('❌ ML API ERROR CAUGHT:');
+      console.error('❌ Error message:', apiError.message);
+      console.error('❌ Error code:', apiError.code);
+      console.error('❌ Error response status:', apiError.response?.status);
+      console.error('❌ Error response data:', apiError.response?.data);
+      console.error('❌ Full error:', apiError);
       
       // Fallback response if ML service is unavailable
       return res.status(503).json({ 
-        message: 'Symptom checking service is currently unavailable'
+        message: 'Symptom checking service is currently unavailable. Please try again later.',
+        details: process.env.NODE_ENV === 'development' ? apiError.message : undefined
       });
     }
   } catch (error) {
