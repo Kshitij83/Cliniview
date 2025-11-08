@@ -156,34 +156,41 @@ export default function SymptomCheckerPage() {
 
     setIsAnalyzing(true);
 
-    // Simulate AI analysis
-    setTimeout(() => {
+    try {
+      // Call real API with enhanced symptom objects
+      const { apiClient } = await import('@/lib/api');
+      
+      // Send complete symptom objects with severity and duration
+      const enhancedSymptoms = symptoms.map(symptom => ({
+        name: symptom.name,
+        severity: symptom.severity,
+        duration: symptom.duration
+      }));
+      
+      console.log('🔍 Frontend: Sending enhanced symptom objects:', enhancedSymptoms);
+      
+      const response = await apiClient.checkSymptoms(enhancedSymptoms);
+      
+      // Transform API response to match frontend format
       const mockResult: SymptomCheckResult = {
-        id: Math.random().toString(36).substr(2, 9),
+        id: response.data.id || Math.random().toString(36).substr(2, 9),
         symptoms: [...symptoms],
-        aiResponse: `Based on your symptoms (${symptoms.map(s => s.name).join(', ')}), our AI analysis suggests several possible conditions. The most likely scenarios include common viral infections, but some symptoms may warrant further medical evaluation.`,
-        possibleConditions: [
-          'Viral upper respiratory infection',
-          'Seasonal allergies',
-          'Stress-related symptoms',
-          'Dehydration'
-        ],
-        severity: symptoms.some(s => s.severity === 'severe') ? 'high' : 
-                 symptoms.some(s => s.severity === 'moderate') ? 'medium' : 'low',
-        recommendations: [
-          'Get adequate rest and stay hydrated',
-          'Monitor symptoms for 24-48 hours',
-          'Consider over-the-counter pain relief if needed',
-          'Contact a healthcare provider if symptoms worsen',
-          'Practice good hygiene to prevent spread'
-        ],
-        createdAt: new Date().toISOString(),
+        aiResponse: response.data.aiResponse || 'Analysis complete',
+        possibleConditions: response.data.predictions.map((pred: any) => pred.disease),
+        severity: response.data.overallSeverity === 'high' ? 'high' : 
+                 response.data.overallSeverity === 'medium' ? 'medium' : 'low',
+        recommendations: response.data.recommendations || [],
+        createdAt: response.data.createdAt || new Date().toISOString(),
       };
 
       setResult(mockResult);
-      setIsAnalyzing(false);
       toast.success('Analysis complete');
-    }, 3000);
+    } catch (error: any) {
+      console.error('Error analyzing symptoms:', error);
+      toast.error(error.message || 'Failed to analyze symptoms. Please try again.');
+    } finally {
+      setIsAnalyzing(false);
+    }
   };
 
   const getSeverityColor = (severity: string) => {
