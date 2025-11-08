@@ -157,11 +157,19 @@ export default function SymptomCheckerPage() {
     setIsAnalyzing(true);
 
     try {
-      // Call real API
+      // Call real API with enhanced symptom objects
       const { apiClient } = await import('@/lib/api');
-      const symptomNames = symptoms.map(s => s.name.toLowerCase().replace(/\s+/g, '_'));
       
-      const response = await apiClient.checkSymptoms(symptomNames);
+      // Send complete symptom objects with severity and duration
+      const enhancedSymptoms = symptoms.map(symptom => ({
+        name: symptom.name,
+        severity: symptom.severity,
+        duration: symptom.duration
+      }));
+      
+      console.log('🔍 Frontend: Sending enhanced symptom objects:', enhancedSymptoms);
+      
+      const response = await apiClient.checkSymptoms(enhancedSymptoms);
       
       // Transform API response to match frontend format
       const mockResult: SymptomCheckResult = {

@@ -104,4 +104,8 @@ ml/models/saved/*.onnx
 
 # Uploaded files in development (would be stored in a service like S3 in production)
 backend/uploads/*
-!backend/uploads/.gitkeep
+!backend/uploads/.gitkeep# Large ML model files
+ml/models/*.pkl
+ml/models/*.joblib
+ml/models/*.h5
+ml/data/*.csv

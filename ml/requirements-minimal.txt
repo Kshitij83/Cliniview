@@ -1,6 +1,12 @@
-# Cliniview ML Service - Symptom Checker (ZERO COMPILATION REQUIRED)
+# Cliniview ML Service - Symptom Checker + Real ML
 
+# Web Framework
 fastapi==0.115.0
 uvicorn==0.32.0
 python-dotenv==1.0.1
 python-multipart==0.0.12
+
+# Machine Learning
+scikit-learn==1.5.2
+pandas==2.2.3
+numpy==2.1.3
